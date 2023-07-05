@@ -175,49 +175,29 @@ def intrplee(eintre,LEenrgygrd,LEe):
 #Function to proportion energy depostion over an altitude grid
 def edfillgrd(dimensione,presgrdefix,edgrde,JEDIelecenerflx,JEDIestrtenergy,edaltgrd):
     edepesum = np.zeros(lenalt,dtype=float)
+    esprdfix = []
     edepesuminv = np.zeros(lenalt)
     prestop0 = presgrdefix[0]#Pressure at top
-    print('prestop0 = ', prestop0)
+    #print('prestop0 = ', prestop0)
     alttop0 = prsalt(prestop0,invpres,invaltgrd)#Pressure at top and corresponding altitude
-    icnttop0 = int(alttop0)
-    #for k in range(icnttop0):
-       # edepesum = np.append(edepesum,0.)
     icntaccum = 0
     for i in range(1,dimensione-1):
         prestop = presgrdefix[i]
         if (prestop <= 0.):
-            print('prestop = ', prestop)
+            #print('prestop = ', prestop)
             break
         presbot = presgrdefix[i+1]
         if (presbot <= 0.):
-            print('presbot = ', presbot)
+            #print('presbot = ', presbot)
             break
         alttop = prsalt(prestop,invpres,invaltgrd)
         altbot = prsalt(presbot,invpres,invaltgrd)
         altrng = alttop-altbot #Height grid where energy is getting deposited
-        print('alttop =', alttop)
-        print('altbot =', altbot)
+        #print('alttop =', alttop)
+        #print('altbot =', altbot)
         esprd = (edgrde*JEDIelecenerflx)/altrng #Energy deposited at specific height
-        print('esprd = ',esprd)
-        icnttop = int(alttop-1)
-        icntbot = int(altbot)
-        icntrng1 = icnttop - icntbot
-        icntaccum = icntaccum + icntrng1
-        print('icntrng1 =', icntrng1)
-        for j in range(int(icntrng1/1000)):
-          np.append(edepesum,esprd)
-        #print('esprd =', esprd)
-        #print('edepesum =',edepesum)
-    lentmp = len(edepesum)
-    lenadd = 2 - lentmp
-    #for j in range(lenadd+2):
-    #    edepesum = np.append(edepesum,0.)
-    icounter =  icnttop0+icntaccum+lenadd
-    print('icounter = ', icounter)
-    edepesumarr = np.array(edepesum)
-    edepesuminv = np.flip(edepesumarr)
-    print('edepesuminv = ', edepesum)
-    return edepesuminv
+        esprdfix.append(esprd)
+    return esprdfix
 
 #Run Energy Deposition Case
 rngidx = 100
@@ -311,10 +291,10 @@ def eendegrade(JEDIestrtenergy,dimensione,edgrde):
     for j in range(dimensione):
         JEDIeed[j+1] = JEDIeed[j] - edgrde
         nHtmp = edgrde/intrplee(JEDIeed[j],LEenrgygrd,LEe)
-#        print('nHtmp =',nHtmp,'JEDIeed[j+1] = ',JEDIeed[j+1])
+#       print('nHtmp =',nHtmp,'JEDIeed[j+1] = ',JEDIeed[j+1])
         nHe[j+1] = nHe[j]+nHtmp
         presgrde[j+1] = nHpres(nHe[j+1])
-#        print('edgrde[j+1] = ',edgrde[j+1],'nHe[j+1] = ',nHe[j+1],'presgrde[j+1] = ',presgrde[j+1])
+#       print('edgrde[j+1] = ',edgrde[j+1],'nHe[j+1] = ',nHe[j+1],'presgrde[j+1] = ',presgrde[j+1])
         if (JEDIeed[j+1] <=1e2):
             print('I am here e')
             break
@@ -330,27 +310,23 @@ def eendegrade(JEDIestrtenergy,dimensione,edgrde):
 
 # Portion of code that iterates over JEDI energy spectrum for electrons for now
 edepeout = np.zeros_like(edaltgrd)
+
 for i in range(len(JEDIelecencheV)):
     JEDIestrtenergy = JEDIelecencheV[i]
     edgrde = pele*JEDIestrtenergy
     print ('JEDIestrtenergy = ',JEDIestrtenergy)
     dimensione = dime(JEDIestrtenergy,pele)
-    print('dimensione = ', dimensione)
+    JEDIestrtenergy = JEDIelecencheV[i]
     JEDIeed = np.zeros((dimensione),dtype=float)
     nHe = np.zeros(dimensione,dtype=float)
     presgrde = np.zeros(dimensione,dtype=float)
-    presgrdefix, energrdfix = [], []
     presgrde, JEDIed = eendegrade(JEDIestrtenergy,dimensione,edgrde)
-    presgrdefix.append(presgrde)
-    energrdfix.append(JEDIed)
-#Height = prsalt(presgrdefix,invpres,invaltgrd)
-#plot(JEDIed, Height[0,:]/1e5)
-#xscale('log')
-#yscale('log')
-#xlabel('Energy (eV)')
-#ylabel('Altitude (km)')
-   # ylim([1e3, 1e-2])
-#xlim([1e4, 1e7])
+    edepe = edfillgrd(dimensione,presgrde,edgrde,JEDIelecenerflxpj7s2[i],JEDIestrtenergy,edaltgrd)
+    Height = prsalt(presgrde[1:dimensione-1],invpres,invaltgrd)
+    plot(edepe, Height/1e5)
+xscale('log')
+xlabel('Energy deposition per height (electrons/cm^3)')
+ylabel('Altitude (km)')
 '''
     print('presgrde = ',presgrde)
     for k in range(dimensione):
@@ -372,3 +348,6 @@ for i in range(len(JEDIelecencheV)):
     figede.update_xaxes(exponentformat="E")
     figede.show()
   '''
+
+
+
