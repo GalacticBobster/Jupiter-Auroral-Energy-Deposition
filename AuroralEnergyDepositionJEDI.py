@@ -10,6 +10,7 @@ import numpy as np
 import scipy
 from scipy import integrate
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import interp1d
 import glob
 import re
 import os
@@ -85,23 +86,48 @@ def elecpj7spec7(elecener):
 #Function and supporting materials to determine electron flux from JEDI on PJ7 spectra 7 of Mauk et al. 10.1002/2017GL076901
 #First input data from the spreadsheet that Barry Mauk sent me: energy of the JEDI electron channel,
 #energy width of the energy channel, and intensity in electrons/(cm^2 s ster keV).
+#Linear interpolation of JEDI channels to 10 MeV based on Mauk et al., 2018 (GRL)
 JEDIelecench =[32.07,37.67,44.82,53.9,64.905,78.18,94.045,113.52,136.81,164.77,198.5,238.255,285.27,340.895,407.13,487.005,584.575,705.93,1000.]
 JEDIelecintenpj7s1 = [2.28E+06,1.97E+06,1.56E+06,1.54E+06,1.57E+06,1.80E+06,1.73E+06,1.83E+06,1.90E+06,1.93E+06,1.90E+06,1.80E+06,1.66E+06,1.46E+06,1.24E+06,9.97E+05,7.59E+05,5.39E+05,2.43E+05]
 JEDIelecintenpj7s2 = [3.65E+06,3.63E+06,3.46E+06,2.73E+06,3.00E+06,3.22E+06,3.35E+06,4.05E+06,4.52E+06,4.70E+06,4.75E+06,4.82E+06,4.59E+06,3.92E+06,2.96E+06,2.33E+06,1.73E+06,1.11E+06,7.34E+05]
-JEDIelecenchwd = np.zeros(19,dtype=float)
+func_intpj7s1 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s1), kind='linear',fill_value='extrapolate')
+func_intpj7s2 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='linear',fill_value='extrapolate')
+
+new_channels = [2000, 5000, 7000, 10000] #Energies (keV)
+newint_pj7s1 = 10**func_intpj7s1(log10(new_channels))
+newint_pj7s2 = 10**func_intpj7s2(log10(new_channels))
+for inx in range(len(new_channels)):
+  JEDIelecench.append(new_channels[inx])
+  JEDIelecintenpj7s1.append(newint_pj7s1[inx])
+  JEDIelecintenpj7s2.append(newint_pj7s2[inx])
+
+'''
+scatter(JEDIelecench_GRL, JEDIelecintenpj7s2_GRL, c ='k', marker = 'x')
+plot(new_channels, 10**newint_pj7s2, 'k--')
+plot(JEDIelecench_GRL, JEDIelecintenpj7s2_GRL, 'k-')
+legend(['JEDI PJ7 (Mauk et al., 2018)', 'Extrapolated intensities'], loc = 'best')
+xscale('log')
+yscale('log')
+xlabel('Energy (keV)')
+ylabel('Intensity $(cm^{2}.s.sr.keV)^{-1}$')
+xlim([32, 10000])
+'''
+
+lenJEDI = len(JEDIelecench)
+JEDIelecenchwd = np.zeros(lenJEDI,dtype=float)
 JEDIelecenchwd[0] = JEDIelecench[1]-JEDIelecench[0]
-JEDIelecenchwd[18] = JEDIelecench[18]-JEDIelecench[17]
-for i in [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]:
+JEDIelecenchwd[lenJEDI-1] = JEDIelecench[lenJEDI-1]-JEDIelecench[lenJEDI-2]
+for i in range(1,lenJEDI-1):
     JEDIelecenchwd[i] = (JEDIelecench[i+1]-JEDIelecench[i-1])/2.
 print(JEDIelecenchwd)
 #Putting JEDI data in flux units per cm^2 per s and energies of channels in eV
-JEDIelecflxpj7s2 = np.zeros(19,dtype=float)
-JEDIenerflxpj7s2 = np.zeros(19,dtype=float)
-JEDIelecencheV = np.zeros(19,dtype=float)
-JEDIelecenerflxpj7s2 = np.zeros(19,dtype=float)
+JEDIelecflxpj7s2 = np.zeros(lenJEDI,dtype=float)
+JEDIenerflxpj7s2 = np.zeros(lenJEDI,dtype=float)
+JEDIelecencheV = np.zeros(lenJEDI,dtype=float)
+JEDIelecenerflxpj7s2 = np.zeros(lenJEDI,dtype=float)
 JEDIenerflxtotpj7s2 = 0.
 pi = 3.14159
-lenJEDI = len(JEDIelecench)
+
 for i in range(lenJEDI):
     JEDIelecflxpj7s2[i] = JEDIelecintenpj7s2[i]*pi*JEDIelecenchwd[i]
     JEDIelecencheV[i] = 1e3 * JEDIelecench[i]
@@ -158,18 +184,6 @@ def intrplee(eintre,LEenrgygrd,LEe):
     lnyintre = cslee(lneintre)
     yintre = np.power(10.,lnyintre)
     return yintre
-
-#Functions for finding value closest to set of list values
-#def closest_value_lesser(input_list, input_value):
-#    arr = np.asarray(input_list)
-#    i = (np.abs(arr - input_value)).argmin()
-#    lstindxval = (i, arr[i])
-#    return lstindxval
-#def closest_value_greater(input_list, input_value):
-#    arr = np.flip(input_list)
-#    i = (np.abs(arr - input_value)).argmin()
-#    lstindxval = (i, arr[i])
-#    return lstindxval
 
 
 #Function to proportion energy depostion over an altitude grid
@@ -278,7 +292,6 @@ def pendegrade(JEDIpstrtenergy,dimensionp,pelp):
         nHtmp = edgrdp[j]/intrplep(JEDIped[j],LEenrgygrd,LEp)
         nHp[j+1] = nHp[j]+nHtmp
         presgrdp[j+1] = nHpres(nHp[j+1])
-#        print (edgrdp[j+1],nHp[j+1],presgrdp[j+1],JEDIped[j+1])
         if (JEDIped[j+1] <1e2):
             print('I am here p')
             EDpoutputdf = pd.DataFrame(data={'Pressurebar':presgrdp,'Column depth':nHp,'EnergyDeposition':edgrdp,'ProtonEnergy':JEDIped})
@@ -291,25 +304,21 @@ def eendegrade(JEDIestrtenergy,dimensione,edgrde):
     for j in range(dimensione):
         JEDIeed[j+1] = JEDIeed[j] - edgrde
         nHtmp = edgrde/intrplee(JEDIeed[j],LEenrgygrd,LEe)
-#       print('nHtmp =',nHtmp,'JEDIeed[j+1] = ',JEDIeed[j+1])
         nHe[j+1] = nHe[j]+nHtmp
         presgrde[j+1] = nHpres(nHe[j+1])
-#       print('edgrde[j+1] = ',edgrde[j+1],'nHe[j+1] = ',nHe[j+1],'presgrde[j+1] = ',presgrde[j+1])
         if (JEDIeed[j+1] <=1e2):
             print('I am here e')
             break
     print('presgrde =',presgrde,'edgrde = ',edgrde)
     return presgrde, JEDIeed
 
-
-
-
-
 #Produce figures
 #Electrons
 
 # Portion of code that iterates over JEDI energy spectrum for electrons for now
 edepeout = np.zeros_like(edaltgrd)
+fig, ax1 = subplots()
+ax2 = ax1.twinx()
 
 for i in range(len(JEDIelecencheV)):
     JEDIestrtenergy = JEDIelecencheV[i]
@@ -323,31 +332,42 @@ for i in range(len(JEDIelecencheV)):
     presgrde, JEDIed = eendegrade(JEDIestrtenergy,dimensione,edgrde)
     edepe = edfillgrd(dimensione,presgrde,edgrde,JEDIelecenerflxpj7s2[i],JEDIestrtenergy,edaltgrd)
     Height = prsalt(presgrde[1:dimensione-1],invpres,invaltgrd)
-    plot(edepe, Height/1e5)
-xscale('log')
-xlabel('Energy deposition per height (electrons/cm^3)')
-ylabel('Altitude (km)')
-'''
-    print('presgrde = ',presgrde)
-    for k in range(dimensione):
-        if (presgrde[k] <= 0.):
-            break
-        presgrdefix.append(presgrde[k])
-    print('presgrdefix = ',presgrdefix)
-    edepe = np.zeros(lenalt)
-    #edepe = edfillgrd(dimensione,presgrdefix,edgrde,JEDIelecenerflxpj7s2,JEDIestrtenergy,edaltgrd)
-    #print('i=',i)
-    #for j in range(0,lenalt,100):
-    #    print('j=',j,'edepe = ',edepe[j])
-    #for j in range(lenalt):
-    #    print('j=',j)
-    #edepeout[j] = edepeout[j] + edepe[j]
-    #print('edepeout = ', edepeout)
-    figede = px.scatter(x=edepeout,y=edaltgrd,log_x=True,title='EnergyDeposition(per altitude level)',labels={"y":  "Altitude(cm)", "x": "Energy flux (ev)"})
-    figede.add_scatter(x=edepeout, y=edaltgrd, mode='markers',name='electrons')
-    figede.update_xaxes(exponentformat="E")
-    figede.show()
-  '''
 
+#Plot electron energy deposition
+'''    
+if(JEDIestrtenergy == 1E6):
+  ax1.plot(np.cumsum(edepe), Height/1e5, 'k-')
+if(JEDIestrtenergy == 10E6):
+  ax1.plot(np.cumsum(edepe), Height/1e5, 'C7-')
+
+
+ax1.set_xscale('log')
+ax1.set_xlabel('Energy deposition (eV/cm^3)')
+ax1.set_ylabel('Altitude (km)')
+ax1.legend(['1 MeV electrons','10 MeV electrons'], loc = 'best')
+ax1.set_xlim([1e12, 1e20])
+
+for i in range(len(JEDIelecencheV)):
+    JEDIestrtenergy = JEDIelecencheV[i]
+    edgrde = pele*JEDIestrtenergy
+    print ('JEDIestrtenergy = ',JEDIestrtenergy)
+    dimensione = dime(JEDIestrtenergy,pele)
+    JEDIestrtenergy = JEDIelecencheV[i]
+    JEDIeed = np.zeros((dimensione),dtype=float)
+    nHe = np.zeros(dimensione,dtype=float)
+    presgrde = np.zeros(dimensione,dtype=float)
+    presgrde, JEDIed = eendegrade(JEDIestrtenergy,dimensione,edgrde)
+    edepe = edfillgrd(dimensione,presgrde,edgrde,JEDIelecenerflxpj7s2[i],JEDIestrtenergy,edaltgrd)
+    Height = prsalt(presgrde[1:dimensione-1],invpres,invaltgrd)
+    if(JEDIestrtenergy == 1E6):
+      ax2.plot(np.cumsum(edepe), (presgrde[1:dimensione-1])/1e6, 'w-', alpha = 0)
+    if(JEDIestrtenergy == 10E6):
+      ax2.plot(np.cumsum(edepe), (presgrde[1:dimensione-1])/1e6, 'w-', alpha = 0)
+
+ax2.set_ylabel('Pressure (bar)')
+ax2.set_yscale('log')
+ax2.invert_yaxis()
+ax2.set_xlim([1e12, 1e20])
+'''
 
 
