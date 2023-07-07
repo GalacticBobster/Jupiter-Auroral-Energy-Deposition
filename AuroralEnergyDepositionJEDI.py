@@ -316,10 +316,43 @@ def eendegrade(JEDIestrtenergy,dimensione,edgrde):
 #Electrons
 
 # Portion of code that iterates over JEDI energy spectrum for electrons for now
-edepeout = np.zeros_like(edaltgrd)
-fig, ax1 = subplots()
-ax2 = ax1.twinx()
+#edepeout = np.zeros_like(edaltgrd)
+#fig, ax1 = subplots()
+#ax2 = ax1.twinx()
 
+#Height grid (KINETICS, Moses and Poppe)
+Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
+-2.856E+01, -2.576E+01, -2.299E+01, -2.020E+01, -1.741E+01, -1.464E+01, -1.278E+01, -1.091E+01,
+-9.065E+00, -7.205E+00, -5.361E+00, -3.500E+00, -1.643E+00, 2.190E-01, 2.076E+00, 3.926E+00,
+ 5.784E+00, 7.645E+00, 9.498E+00, 1.136E+01, 1.322E+01, 1.507E+01, 1.694E+01, 1.879E+01,
+ 2.065E+01, 2.252E+01, 2.437E+01, 2.622E+01, 2.809E+01, 2.995E+01, 3.180E+01, 3.367E+01,
+ 3.552E+01, 3.737E+01, 3.924E+01, 4.110E+01, 4.480E+01, 4.945E+01, 5.502E+01, 6.059E+01,
+ 6.616E+01, 7.173E+01, 7.824E+01, 8.475E+01, 9.125E+01, 9.775E+01, 1.043E+02, 1.108E+02,
+ 1.182E+02, 1.257E+02, 1.331E+02, 1.406E+02, 1.481E+02, 1.555E+02, 1.630E+02, 1.705E+02,
+ 1.780E+02, 1.855E+02, 1.931E+02, 2.007E+02, 2.083E+02, 2.160E+02, 2.236E+02, 2.313E+02,
+ 2.391E+02, 2.469E+02, 2.547E+02, 2.626E+02, 2.706E+02, 2.786E+02, 2.867E+02, 2.948E+02,
+ 3.040E+02, 3.132E+02, 3.225E+02, 3.328E+02, 3.442E+02, 3.566E+02, 3.709E+02, 3.883E+02,
+ 4.086E+02, 4.317E+02, 4.577E+02, 4.875E+02, 5.202E+02, 5.556E+02, 5.930E+02, 6.331E+02,
+ 6.752E+02, 7.192E+02, 7.650E+02, 8.119E+02, 8.596E+02, 9.084E+02, 9.580E+02, 1.008E+03,
+ 1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
+
+#Pressure grid (KINETICS, Moses and Poppe)
+Pgrid = [6.708E+03, 5.976E+03, 5.305E+03, 4.689E+03, 4.122E+03, 3.706E+03, 3.414E+03, 3.137E+03,
+ 2.876E+03, 2.630E+03, 2.402E+03, 2.185E+03, 1.983E+03, 1.795E+03, 1.675E+03, 1.562E+03,
+ 1.455E+03, 1.352E+03, 1.255E+03, 1.162E+03, 1.074E+03, 9.901E+02, 9.113E+02, 8.370E+02,
+ 7.668E+02, 7.004E+02, 6.384E+02, 5.805E+02, 5.270E+02, 4.782E+02, 4.323E+02, 3.906E+02,
+ 3.515E+02, 3.160E+02, 2.831E+02, 2.531E+02, 2.251E+02, 1.999E+02, 1.770E+02, 1.563E+02,
+ 1.380E+02, 1.220E+02, 1.079E+02, 9.567E+01, 7.594E+01, 5.772E+01, 4.223E+01, 3.130E+01,
+ 2.340E+01, 1.763E+01, 1.275E+01, 9.287E+00, 6.818E+00, 5.039E+00, 3.751E+00, 2.803E+00,
+ 2.018E+00, 1.456E+00, 1.053E+00, 7.609E-01, 5.507E-01, 3.984E-01, 2.888E-01, 2.091E-01,
+ 1.517E-01, 1.100E-01, 7.977E-02, 5.787E-02, 4.206E-02, 3.056E-02, 2.222E-02, 1.619E-02,
+ 1.179E-02, 8.605E-03, 6.291E-03, 4.609E-03, 3.385E-03, 2.497E-03, 1.849E-03, 1.378E-03,
+ 9.982E-04, 7.319E-04, 5.446E-04, 4.006E-04, 2.945E-04, 2.200E-04, 1.653E-04, 1.228E-04,
+ 9.084E-05, 6.700E-05, 4.939E-05, 3.601E-05, 2.623E-05, 1.907E-05, 1.390E-05, 1.009E-05,
+ 7.311E-06, 5.285E-06, 3.806E-06, 2.743E-06, 1.978E-06, 1.425E-06, 1.025E-06, 7.390E-07,
+ 5.313E-07, 3.832E-07, 2.753E-07, 1.981E-07, 1.428E-07, 1.025E-07, 7.373E-08]
+
+Egrid = zeros(len(Hgrid))
 for i in range(len(JEDIelecencheV)):
     JEDIestrtenergy = JEDIelecencheV[i]
     edgrde = pele*JEDIestrtenergy
@@ -332,6 +365,16 @@ for i in range(len(JEDIelecencheV)):
     presgrde, JEDIed = eendegrade(JEDIestrtenergy,dimensione,edgrde)
     edepe = edfillgrd(dimensione,presgrde,edgrde,JEDIelecenerflxpj7s2[i],JEDIestrtenergy,edaltgrd)
     Height = prsalt(presgrde[1:dimensione-1],invpres,invaltgrd)
+    #total energy
+    h_min = min(Height)/1e5
+    h_max = max(Height)/1e5
+    mask = where((Hgrid >= h_min) & (Hgrid <= h_max))
+    print(mask[0])
+    for inx in range(len(mask[0])):
+      masked_hgrid = Hgrid[mask[0][inx]]
+      energfunc = interp1d(Height/1e5, edepe, fill_value = [0])
+      Egrid[mask[0][inx]] = Egrid[mask[0][inx]] + energfunc(masked_hgrid)
+
 
 #Plot electron energy deposition
 '''    
@@ -369,5 +412,32 @@ ax2.set_yscale('log')
 ax2.invert_yaxis()
 ax2.set_xlim([1e12, 1e20])
 '''
+##postprocessing to compute heating rate and ionization
+##The fractionation efficiencies are taken from Waite et al., (1983)
+w = 39.38 #mean energy loss per ion pair (eV/ip)
+n_heat = 11.06 #efficiency of neutral heating rate
+e_heat = 1.65 #efficiency of electron heating rate
+h2p_heat = 38.91 #H2+ production efficiency
+vd_heat = 8.31 #vibration direct
+vc_heat = 3.32 #vibration cascade
+hp_heat = 6.09 #H+ production efficiency
 
 
+#Total H2+ production rate
+H2p_rate = Egrid*h2p_heat/(w*100)
+#Total H+ production rate
+Hp_rate = Egrid*hp_heat/(w*100)
+#Total heating rate
+Heat_rate = Egrid*(h2p_heat + hp_heat + vd_heat + vc_heat + n_heat)/100
+e_rate = Egrid*e_heat/100
+
+plot(Heat_rate, Hgrid, 'C7-' )
+plot(e_rate, Hgrid, 'C7--')
+legend(['Neutral and ion heating rate', 'Electron heating rate'], loc = 'best')
+#plot(Hp_rate,Hgrid,'C1-')
+xscale('log')
+ylabel('Altitude (km)')
+xlabel('Heating rate (eV/cm^3.s)')
+#xlabel('Rate/[$H_{2}$] ($cm^{3}$.s)')
+ylim([0,500])
+#legend(['$H_{2}$ + $e_{p}$ -> $H_{2}^{+}$ + e + $e_{p}$', '$H_{2}$ + $e_{p}$ -> $H^{+}$ + H + e + $e_{p}$'], loc = 'best')
