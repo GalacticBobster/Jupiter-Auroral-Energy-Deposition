@@ -93,25 +93,57 @@ JEDIelecintenpj7s2 = [3.65E+06,3.63E+06,3.46E+06,2.73E+06,3.00E+06,3.22E+06,3.35
 func_intpj7s1 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s1), kind='linear',fill_value='extrapolate')
 func_intpj7s2 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='linear',fill_value='extrapolate')
 
-new_channels = [2000, 5000, 7000, 10000] #Energies (keV)
-newint_pj7s1 = 10**func_intpj7s1(log10(new_channels))
-newint_pj7s2 = 10**func_intpj7s2(log10(new_channels))
-for inx in range(len(new_channels)):
-  JEDIelecench.append(new_channels[inx])
-  JEDIelecintenpj7s1.append(newint_pj7s1[inx])
-  JEDIelecintenpj7s2.append(newint_pj7s2[inx])
+
+#UVS interpolation from guess
+uvs_tail = [1000, 10000]
+uvs_guess1 = [JEDIelecintenpj7s1[-1], 1e3]
+uvs_guess2 = [JEDIelecintenpj7s2[-1], 0.31]
+uvs_guess2LB = 0.245
+uvs_guess2UB = 0.415
+
+#0.31 is right guess for uvs value equal to 50e3
+#0.245 is right guess for uvs lower bound
+#0.415 is the right guess for uvs upper bound
+uvs_guessfunc1 = interp1d(log10(uvs_tail), log10(uvs_guess1))
+uvs_guessfunc_lower = interp1d(log10(uvs_tail), log10(uvs_guess1))
+uvs_guessfunc_upper = interp1d(log10(uvs_tail), log10(uvs_guess1))
+uvs_guessfunc2 = interp1d(log10(uvs_tail), log10(uvs_guess2))
+
+#Linear extrapolation from JEDI
+new_channels = [2000, 5000, 6000,10000] #Energies (keV)
+newint_pj7s1 = 10**uvs_guessfunc1(log10(new_channels))
+newint_pj7s2 = 10**uvs_guessfunc2(log10(new_channels))
+
+
+uvs_integral = 0.5*pi*(newint_pj7s2[-1] + newint_pj7s2[-2])*(new_channels[-1] - new_channels[-2])
+uvs_pj7 = 50e3
+corr_factor = 0.239 #Zhu et al., 2021
+uvs_pj7upper = 50e3/((0.239 - 0.048)*4) #UVS measurements are distributed over 4 pi, however only pi radians are needed
+uvs_pj7lower = 50e3/((0.239 + 0.048)*4) #UVS measurements are distributed over 4 pi, however only pi radians are needed
+uvs_pj7check = 50e3/((0.239)*4) #UVS measurements are distributed over 4 pi, however only pi radians are needed
+print("Guess = ", uvs_integral)
+print("Correct = ", uvs_pj7upper)
+print("Percent difference = ", 100*(uvs_integral - uvs_pj7check)/uvs_pj7check)
 
 '''
-scatter(JEDIelecench_GRL, JEDIelecintenpj7s2_GRL, c ='k', marker = 'x')
-plot(new_channels, 10**newint_pj7s2, 'k--')
-plot(JEDIelecench_GRL, JEDIelecintenpj7s2_GRL, 'k-')
-legend(['JEDI PJ7 (Mauk et al., 2018)', 'Extrapolated intensities'], loc = 'best')
+#Plot the spectrum with expected values
+scatter(JEDIelecench, JEDIelecintenpj7s2, c ='k', marker = 'x')
+plot(new_channels, newint_pj7s2, 'k--')
+plot(JEDIelecench, JEDIelecintenpj7s2, 'k-')
+vlines(10e3,uvs_guess2LB,uvs_guess2UB, colors='red')
+hlines(uvs_guess2LB, 10e3 - 1e3, 10e3 + 1e3, colors = 'red')
+hlines(uvs_guess2UB, 10e3 - 1e3, 10e3 + 1e3, colors = 'red')
+legend(['JEDI PJ7 (Mauk et al., 2018)', 'UVS PJ7 (Interpolated)'], loc = 'best')
 xscale('log')
 yscale('log')
 xlabel('Energy (keV)')
 ylabel('Intensity $(cm^{2}.s.sr.keV)^{-1}$')
-xlim([32, 10000])
+xlim([32, 12000])
 '''
+for inx in range(len(new_channels)):
+  JEDIelecench.append(new_channels[inx])
+  JEDIelecintenpj7s1.append(newint_pj7s1[inx])
+  JEDIelecintenpj7s2.append(newint_pj7s2[inx])
 
 lenJEDI = len(JEDIelecench)
 JEDIelecenchwd = np.zeros(lenJEDI,dtype=float)
@@ -374,21 +406,22 @@ for i in range(len(JEDIelecencheV)):
       masked_hgrid = Hgrid[mask[0][inx]]
       energfunc = interp1d(Height/1e5, edepe, fill_value = [0])
       Egrid[mask[0][inx]] = Egrid[mask[0][inx]] + energfunc(masked_hgrid)
+      
 
 
 #Plot electron energy deposition
-'''    
+'''
 if(JEDIestrtenergy == 1E6):
-  ax1.plot(np.cumsum(edepe), Height/1e5, 'k-')
-if(JEDIestrtenergy == 10E6):
-  ax1.plot(np.cumsum(edepe), Height/1e5, 'C7-')
+        plot(np.cumsum(edepe), Height/1e5, 'k-')
+      if(JEDIestrtenergy == 10E6):
+        plot(np.cumsum(edepe), Height/1e5, 'C7-')
 
 
-ax1.set_xscale('log')
-ax1.set_xlabel('Energy deposition (eV/cm^3)')
-ax1.set_ylabel('Altitude (km)')
-ax1.legend(['1 MeV electrons','10 MeV electrons'], loc = 'best')
-ax1.set_xlim([1e12, 1e20])
+xscale('log')
+xlabel('Energy deposition (eV/cm^3 s)')
+ylabel('Altitude (km)')
+legend(['1 MeV electrons','10 MeV electrons'], loc = 'best')
+xlim([1e12, 1e20])
 
 for i in range(len(JEDIelecencheV)):
     JEDIestrtenergy = JEDIelecencheV[i]
@@ -431,13 +464,13 @@ Hp_rate = Egrid*hp_heat/(w*100)
 Heat_rate = Egrid*(h2p_heat + hp_heat + vd_heat + vc_heat + n_heat)/100
 e_rate = Egrid*e_heat/100
 
-plot(Heat_rate, Hgrid, 'C7-' )
-plot(e_rate, Hgrid, 'C7--')
-legend(['Neutral and ion heating rate', 'Electron heating rate'], loc = 'best')
+plot(H2p_rate, Hgrid, 'C7-' )
+plot(Hp_rate, Hgrid, 'C7--')
+#####legend(['Neutral and ion heating rate', 'Electron heating rate'], loc = 'best')
 #plot(Hp_rate,Hgrid,'C1-')
 xscale('log')
 ylabel('Altitude (km)')
-xlabel('Heating rate (eV/cm^3.s)')
-#xlabel('Rate/[$H_{2}$] ($cm^{3}$.s)')
+#xlabel('Heating rate (eV/cm^3.s)')
+xlabel('Rate/[$H_{2}$] ($cm^{3}$.s)')
 ylim([0,500])
-#legend(['$H_{2}$ + $e_{p}$ -> $H_{2}^{+}$ + e + $e_{p}$', '$H_{2}$ + $e_{p}$ -> $H^{+}$ + H + e + $e_{p}$'], loc = 'best')
+legend(['$H_{2}$ + $e_{p}$ -> $H_{2}^{+}$ + e + $e_{p}$', '$H_{2}$ + $e_{p}$ -> $H^{+}$ + H + e + $e_{p}$'], loc = 'best')
