@@ -122,7 +122,7 @@ uvs_pj7upper = 50e3/((0.239 - 0.048)*4) #UVS measurements are distributed over 4
 uvs_pj7lower = 50e3/((0.239 + 0.048)*4) #UVS measurements are distributed over 4 pi, however only pi radians are needed
 uvs_pj7check = 50e3/((0.239)*4) #UVS measurements are distributed over 4 pi, however only pi radians are needed
 print("Guess = ", uvs_integral)
-print("Correct = ", uvs_pj7upper)
+print("Correct = ", uvs_pj7check)
 print("Percent difference = ", 100*(uvs_integral - uvs_pj7check)/uvs_pj7check)
 
 '''
@@ -144,7 +144,10 @@ for inx in range(len(new_channels)):
   JEDIelecench.append(new_channels[inx])
   JEDIelecintenpj7s1.append(newint_pj7s1[inx])
   JEDIelecintenpj7s2.append(newint_pj7s2[inx])
-
+print("Electron channel (keV)")
+print(JEDIelecench)
+print("Electron flux (electrons/(cm^2 s ster keV))")
+print(JEDIelecintenpj7s2)
 lenJEDI = len(JEDIelecench)
 JEDIelecenchwd = np.zeros(lenJEDI,dtype=float)
 JEDIelecenchwd[0] = JEDIelecench[1]-JEDIelecench[0]
@@ -193,6 +196,35 @@ LEenrgygrd = [1.00E+02,1.00E+03,1.00E+04,1.00E+05,1.00E+06,1.00E+07,1.00E+08,1.0
 LEp = [5.00E-16,2.40E-15,7.00E-15,1.00E-14,2.40E-15,3.70E-16,6.00E-17,2.00E-17,1.00E-16,1.80E-15]
 LEe = [4.00E-15,9.50E-16,1.20E-16,2.70E-17,1.40E-17,1.20E-17,2.20E-17,7.40E-17,6.50E-16,7.00E-15]
 
+#Reading the stopping power from NIST database
+#Kinetic   Collision Radiative Total     CSDA      Radiation 
+KE_He = []
+LEe_He = []
+
+KE_CH4 = []
+LEe_CH4 = []
+
+
+#NIST He Stopping power
+with open('spNIST/NISTe_HeSP.txt') as fHe:
+      for jix in range(8):
+        next(fHe)
+      for line in fHe:
+        dataHe = line.split()
+        KE_He.append(float(dataHe[0])*1E6) #MeV -> eV
+        LEe_He.append(float(dataHe[3])*1E6*4/6.022E23) #MeV cm^2/g -> eV cm^2
+      
+
+#NIST CH4 Stopping power
+with open('spNIST/NISTe_CH4SP.txt') as fCH4:
+      for jix in range(8):
+        next(fCH4)
+      for line in fCH4:
+        dataCH4 = line.split()
+        KE_CH4.append(float(dataCH4[0])*1E6) #MeV -> eV
+        LEe_CH4.append(float(dataCH4[3])*1E6*16/6.022E23) #MeV cm^2/g -> eV cm^2
+
+
 # Functions for interpolation of cross sections
 def intrplep(eintrp,LEenrgygrd,LEp):
     lindex = len(LEenrgygrd)
@@ -205,6 +237,7 @@ def intrplep(eintrp,LEenrgygrd,LEp):
     lnyintrp = cslep(lneintrp)
     yintrp = np.power(10.,lnyintrp)
     return yintrp
+  
 def intrplee(eintre,LEenrgygrd,LEe):
     lindex = len(LEenrgygrd)
     lnLEenrgygrd = np.zeros(lindex,dtype=float)
@@ -265,15 +298,15 @@ for k in range (rngidx):
     valuee[k] = vale
 #    print('vale = ',vale)
 #Plot values
-figtst = px.scatter(x=energy, y=valuep,log_x=True,range_x=(1e2,1e11),log_y=True,range_y=(1e-17,1e-13),title='Energy Deposition',labels={"y":  "EnergyLoss CS", "x": "Energy (eV)"})
-figtst.add_scatter(x=energy, y=valuep, mode='markers',name='protons')
-figtst.add_scatter(x=energy, y=valuee, mode='markers',name='electrons')
-figtst.update_yaxes(exponentformat="E")
-figtst.show()
+#figtst = px.scatter(x=energy, y=valuep,log_x=True,range_x=(1e2,1e11),log_y=True,range_y=(1e-17,1e-13),title='Energy Deposition',labels={"y":  "EnergyLoss CS", "x": "Energy (eV)"})
+#figtst.add_scatter(x=energy, y=valuep, mode='markers',name='protons')
+#figtst.add_scatter(x=energy, y=valuee, mode='markers',name='electrons')
+#figtst.update_yaxes(exponentformat="E")
+#figtst.show()
 
 # Jupiter values in cgs to calculate column density
 g=2479.
-m = 2.*1.6604e-24
+m = 2.3151*1.6604e-24 #Mean molecular mass updated from Gupta et al., (2022)
 # Conversion bar to barye (cgs)
 conversion = 1.e6
 
@@ -287,7 +320,7 @@ def nHpres(nH):
 
 #determine pressure/column depth step size to use in energy degradation scheme
 
-pelp = 0.1
+pelp = 0.001
 pele = 0.001 #0.01-0.001 (accuracy of code)
 
 # Determine energy loss grid
@@ -329,23 +362,27 @@ def pendegrade(JEDIpstrtenergy,dimensionp,pelp):
             EDpoutputdf = pd.DataFrame(data={'Pressurebar':presgrdp,'Column depth':nHp,'EnergyDeposition':edgrdp,'ProtonEnergy':JEDIped})
             break
     return EDpoutputdf
+
+
+# Previously the electron degradation function is used to calculate the hydrogen column depth corresponding to electrons of various energies
+# The code is getting updated to include the contributions from He, partitioning the contributions from H2 and He
+# For now I am considering the contribution to be 89 and 11 percent for H2 and He
 def eendegrade(JEDIestrtenergy,dimensione,edgrde):
     presgrde[0] = presstrte
-    nHe[0] = edgrde/intrplee(JEDIestrtenergy,LEenrgygrd,LEe)
+    XSC = (intrplee(JEDIestrtenergy,LEenrgygrd,LEe)*0.89) + (intrplee(JEDIestrtenergy,KE_He,LEe_He)*0.11)
+    nHe[0] = edgrde/XSC
     JEDIeed[0] = JEDIestrtenergy - edgrde
     for j in range(dimensione):
         JEDIeed[j+1] = JEDIeed[j] - edgrde
-        nHtmp = edgrde/intrplee(JEDIeed[j],LEenrgygrd,LEe)
+        XSC = (intrplee(JEDIestrtenergy,LEenrgygrd,LEe)*0.89) + (intrplee(JEDIestrtenergy,KE_He,LEe_He)*0.11)
+        nHtmp = edgrde/XSC
         nHe[j+1] = nHe[j]+nHtmp
         presgrde[j+1] = nHpres(nHe[j+1])
         if (JEDIeed[j+1] <=1e2):
             print('I am here e')
             break
-    print('presgrde =',presgrde,'edgrde = ',edgrde)
     return presgrde, JEDIeed
 
-#Produce figures
-#Electrons
 
 # Portion of code that iterates over JEDI energy spectrum for electrons for now
 #edepeout = np.zeros_like(edaltgrd)
@@ -474,3 +511,4 @@ ylabel('Altitude (km)')
 xlabel('Rate/[$H_{2}$] ($cm^{3}$.s)')
 ylim([0,500])
 legend(['$H_{2}$ + $e_{p}$ -> $H_{2}^{+}$ + e + $e_{p}$', '$H_{2}$ + $e_{p}$ -> $H^{+}$ + H + e + $e_{p}$'], loc = 'best')
+show()
