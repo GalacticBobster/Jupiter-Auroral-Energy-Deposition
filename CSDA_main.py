@@ -19,8 +19,6 @@ import plotly.graph_objects as go
 from pylab import *
 from numba import jit, prange
 
-#change to working directory
-#os.chdir('/Users/hwaite/Desktop/JUNO 2016 2023/JEDIjupiteraurora')
 '''
 #NOTE that throughout the code an important relation to keep in mind isthe
 # interrelationship of dele and column depth – see Padovani et al. equation 20
@@ -30,16 +28,6 @@ from numba import jit, prange
 '''
 
 #Height grid (KINETICS, Moses and Poppe)
-'''
-# This is the first input file where we need an accurate spline fit function to be able to
-# interpolate this height grid at high resolution when we are forced to decrease the
-# altitude/pressure step size to select a smaller dele so that the dele used in the energy
-# loss calculation does not exceed 1% of the primary electron beam energy. This
-decrease
-# in dele is required to maintain the full detail of the energy loss cross section as shown
-in
-# the Padovani et al. paper.
-'''
 
 Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
 -2.856E+01, -2.576E+01, -2.299E+01, -2.020E+01, -1.741E+01, -1.464E+01, -1.278E+01, -1.091E+01,
@@ -57,17 +45,6 @@ Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01,
  1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
 
 #Pressure grid (KINETICS, Moses and Poppe)
-'''
-# and once again we need a high-resolution relationship between the height gris and
-the
-# pressure grid to properly interpolate the column depth associated with a decrease in
-the
-# column depth of H2 needed to bring the dele into the constrained range 1% of primary
-# beam energy. Keep in mind that when we transform a pressure differential between
-steps
-# into a column density differential we must take into account the temperature changes
-# and the composition changes that occur over the range of the pressure differential.
-'''
 
 Pgrid = [6.708E+03, 5.976E+03, 5.305E+03, 4.689E+03, 4.122E+03, 3.706E+03, 3.414E+03, 3.137E+03,
  2.876E+03, 2.630E+03, 2.402E+03, 2.185E+03, 1.983E+03, 1.795E+03, 1.675E+03, 1.562E+03,
@@ -84,11 +61,7 @@ Pgrid = [6.708E+03, 5.976E+03, 5.305E+03, 4.689E+03, 4.122E+03, 3.706E+03, 3.414
  7.311E-06, 5.285E-06, 3.806E-06, 2.743E-06, 1.978E-06, 1.425E-06, 1.025E-06, 7.390E-07,
  5.313E-07, 3.832E-07, 2.753E-07, 1.981E-07, 1.428E-07, 1.025E-07, 7.373E-08]
  
-'''
-# All of these atmospheric inputs must be interpolated in accurate high resolution to
-make
-# this process work properly
-'''
+
 
 H = [4.029E+02, 1.670E+03, 5.329E+03, 1.264E+04, 2.331E+04, 3.589E+04, 4.409E+04, 6.956E+04,
  1.052E+05, 1.216E+05, 1.504E+05, 1.745E+05, 2.078E+05, 2.423E+05, 2.714E+05, 3.019E+05,
@@ -166,72 +139,31 @@ Tgrid = [3.000E+02, 2.898E+02, 2.795E+02, 2.692E+02, 2.590E+02, 2.507E+02, 2.444
  7.916E+02, 8.168E+02, 8.378E+02, 8.548E+02, 8.685E+02, 8.795E+02, 8.882E+02, 8.951E+02,
  9.006E+02, 9.048E+02, 9.082E+02, 9.107E+02, 9.128E+02, 9.144E+02, 9.157E+02]
 
-# Read in atmsopheric data file from Randy Gladstone
-asatm_header = ["ALT","TEMP","PRESS","[H]","[H2]","[He]","[CH4]","[C2H2]","[C2H4]","[C2H6]","[CH3C2H]","[C3H8]","[C4H2]","[C4H10]"]
-dfatm = pd.read_csv('jupiterAurAtm_cleaned.txt',names=asatm_header,skiprows=10, sep=' ')
-dfatm.info()
-#print('ATM', dfatm)
-#Store data for altitude from body center, H2, He, H, CH4, temperature, pressure (barye) in arrays for later use
-jeqrad = 66854.
-conkmcm = 1e5
-#altgrd = np.array(dfatm['ALT']*conkmcm) #Altitude grid (km)
-#temperature = np.array(dfatm['TEMP']) #Temperature (K)
-#pressure = np.array(dfatm['PRESS']) #Pressure (barye)
-data = genfromtxt('../data/Jupiter_UVS.txt')
-H0 = (data[:, 0]) #Km
-T0 = (data[:, 1]) #K
-P0 = (data[:, 2]) #barye
-#H2 = (data[:, 4]) #cc
 
-'''
-# I do not understand how this relates to the above atmospheric inputs?
-'''
+#Planetocosmics altitude grid used to calulate loss process such that energy loss is less than 1
+#percent of primary electron beam.
 
-#new height grid
-#Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
-#-2.856E+01, -2.576E+01, -2.299E+01, -2.020E+01, -1.741E+01, -1.464E+01, -1.278E+01, -1.091E+01,
-#-9.065E+00, -7.205E+00, -5.361E+00, -3.500E+00, -1.643E+00, 2.190E-01, 2.076E+00, 3.926E+00,
-# 5.784E+00, 7.645E+00, 9.498E+00, 1.136E+01, 1.322E+01, 1.507E+01, 1.694E+01, 1.879E+01,
-# 2.065E+01, 2.252E+01, 2.437E+01, 2.622E+01, 2.809E+01, 2.995E+01, 3.180E+01, 3.367E+01,
-# 3.552E+01, 3.737E+01, 3.924E+01, 4.110E+01, 4.480E+01, 4.945E+01, 5.502E+01, 6.059E+01,
-# 6.616E+01, 7.173E+01, 7.824E+01, 8.475E+01, 9.125E+01, 9.775E+01, 1.043E+02, 1.108E+02,
-# 1.182E+02, 1.2E+02, 1.257E+02,1.28E+02, 1.30E+02, 1.331E+02, 1.406E+02, 1.41E+02, 1.42E+02, 1.45E+02, 1.481E+02, 1.555E+02, 1.630E+02, 1.705E+02, 1.75E+02, 1.780E+02, 1.80E+02, 1.855E+02, 1.900E+02, 1.931E+02, 2.007E+02, 
-# 2.083E+02, 2.160E+02, 2.236E+02, 2.313E+02, 2.391E+02, 2.469E+02, 2.547E+02, 2.626E+02, 
-# 2.706E+02, 2.786E+02, 2.867E+02, 2.948E+02,3.040E+02, 3.132E+02, 3.225E+02, 3.328E+02, 3.442E+02, 3.566E+02, 3.709E+02, 3.883E+02,
-# 4.086E+02, 4.317E+02, 4.577E+02, 4.875E+02, 5.202E+02, 5.556E+02, 5.930E+02, 6.331E+02,
-# 6.752E+02, 7.192E+02, 7.650E+02, 8.119E+02, 8.596E+02, 9.084E+02, 9.580E+02, 1.008E+03,
-# 1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
-
-'''
-# This is already an interpolation that may be a useful tool for the other interpolation
-# that is noted above? Is one grid about the atmosphere and the other about the energy loss?
-'''
-
-m4 = genfromtxt('../data/PLANETOCOSMICS.txt')
-H4 = m4[:, 0]
+PCgrid = genfromtxt('../data/PLANETOCOSMICS.txt')
+AltPC = PCgrid[:, 0]
 Tfunc = CubicSpline(Hgrid, Tgrid, bc_type='not-a-knot')
 Pfunc = CubicSpline(Hgrid, Pgrid, bc_type='not-a-knot')
-Tgrid = Tfunc(H4)
-Pgrid = Pfunc(H4)
-Hgrid = H4
-
+H2func = CubicSpline(Hgrid, H2, bc_type='not-a-knot')
+Hefunc =  CubicSpline(Hgrid, He, bc_type='not-a-knot')
+#New temperature, pressure, and altitude grids
+Tgrid = Tfunc(AltPC)
+Pgrid = Pfunc(AltPC)
+Hgrid = AltPC
+H2_PC = H2func(AltPC)
+He_PC = Hefunc(AltPC)
 
 altgrd = array(Hgrid)*conkmcm
 temperature = array(Tgrid)
 pressure = array(Pgrid)*1e3 #mbar to barye
-print(len(altgrd), len(pressure))
 
 Total = array(H) + array(H2) + array(CH4) + array(He)
 xH2 = array(H2)/Total
 xHe = array(He)/Total
-#H2func = CubicSpline(pressure, xH2, bc_type='not-a-knot')
-#Hefunc = CubicSpline(pressure, xHe, bc_type='not-a-knot')
 
-
-Hden = np.array(dfatm['[H]'])
-H2den = np.array(dfatm['[H2]'])
-Heden = np.array(dfatm['[He]'])
-CH4den = np.array(dfatm['[CH4]'])
 invpres = np.flip(pressure)
 invaltgrd = np.flip(altgrd)
 #Subroutines for converting altitude to pressure and pressure to altitude, pressure in barye, altiude in cm
@@ -252,33 +184,6 @@ altin = 910000.
 presout = altprs(altin,altgrd,pressure)
 print('ALTOUT = ',altout, 'PRESOUT = ',presout)
 
-# Portion of code to read in the JEDI data
-#
-# Function to determine electron flux from JEDI on PJ7 spectra 7 of Mauk et al. 10.1002/2017GL076901
-# begin at 3e4 eV and end at 1e8 eV
-
-def elecpj7spec7(elecener):
-    e1 = math.log10(3.0e4)
-    e2 = math.log10(3.5e5)
-    e3 = math.log10(7.0e5)
-    e4 = math.log10(1.0e8)
-    slp1 = 0.0
-    slp3 = ((math.log10(5.3e7)-math.log10(6e5))/(math.log10(1e4)-math.log10(1e6)))
-    slp2 = ((math.log10(1.05e8)-math.log10(2.4e5))/(math.log10(1e5)-math.log10(1e6)))
-    val1 = 4.7e6
-    logval1 = math.log10(val1)
-    val2 = 8.0e5
-    logval2 = math.log10(val2)
-    logelecen = math.log10(elecener)
-    eflx = 0.0
-    if (logelecen > e1 and logelecen <= e4):
-        if (logelecen < e2):
-            eflx = val1
-        elif (logelecen >= e2 and logelecen < e3):
-            eflx = math.pow(10.,(logval1+((logelecen-e2)*slp2)))
-        elif (logelecen >= e3 and logelecen <= e4):
-            eflx = math.pow(10.,(logval2+((logelecen-e3)*slp3)))
-    return eflx
 
 
 JEDIelecench = []
@@ -307,21 +212,13 @@ with open('../JEDI_Hpj7_Bhattacharya.txt') as fJEDIp:
         JEDIprotintenpj7s2.append(float(dataHe[1])) #electrons/(cm^2 s ster keV)
       fJEDIp.close()
 
-#Function and supporting materials to determine electron flux from JEDI on PJ7 spectra 7 of Mauk et al. 10.1002/2017GL076901
-#First input data from the spreadsheet that Barry Mauk sent me: energy of the JEDI electron channel,
-#energy width of the energy channel, and intensity in electrons/(cm^2 s ster keV).
-#Linear interpolation of JEDI channels to 10 MeV based on Mauk et al., 2018 (GRL)
-#JEDIelecench =[32.07,37.67,44.82,53.9,64.905,78.18,94.045,113.52,136.81,164.77,198.5,238.255,285.27,340.895,407.13,487.005,584.575,705.93,1000.]
-JEDIelecintenpj7s1 = [2.28E+06,1.97E+06,1.56E+06,1.54E+06,1.57E+06,1.80E+06,1.73E+06,1.83E+06,1.90E+06,1.93E+06,1.90E+06,1.80E+06,1.66E+06,1.46E+06,1.24E+06,9.97E+05,7.59E+05,5.39E+05,2.43E+05]
-#JEDIelecintenpj7s2 = [3.65E+06,3.63E+06,3.46E+06,2.73E+06,3.00E+06,3.22E+06,3.35E+06,4.05E+06,4.52E+06,4.70E+06,4.75E+06,4.82E+06,4.59E+06,3.92E+06,2.96E+06,2.33E+06,1.73E+06,1.11E+06,7.34E+05]
-print(len(JEDIelecench), len(JEDIelecintenpj7s1))
-func_intpj7s1 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s1), kind='linear',fill_value='extrapolate')
+print(len(JEDIelecench), len(JEDIelecintenpj7s2))
 func_intpj7s2 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='linear',fill_value='extrapolate')
 
 
 #UVS interpolation from guess
 uvs_tail = [1000, 10000]
-uvs_guess1 = [JEDIelecintenpj7s1[-1], 1e3]
+uvs_guess1 = [JEDIelecintenpj7s2[-1], 1e3]
 uvs_guess2 = [JEDIelecintenpj7s2[-1], 0.31]
 uvs_guess2LB = 0.245
 uvs_guess2UB = 0.415
@@ -356,32 +253,13 @@ plot(JEDIelecench, JEDIelecintenpj7s2, 'k-')
 
 for inx in range(len(new_channels)):
   JEDIelecench.append(new_channels[inx])
-  JEDIelecintenpj7s1.append(newint_pj7s1[inx])
   JEDIelecintenpj7s2.append(newint_pj7s2[inx])
 
 print("Electron channel (keV)")
 print(JEDIelecench)
 print("Electron flux (electrons/(cm^2 s ster keV))")
 print(JEDIelecintenpj7s2)
-'''
-#Plot the spectrum with expected values
-scatter(JEDIelecench, 0.1*JEDIelecintenpj7s2, c ='r', marker = 'x')
-scatter(JEDIelecench, 0.1*JEDIelecintenpj7s2, c ='r', marker = 'x')
-plot(JEDIelecench, 0.1*array(JEDIelecintenpj7s2), 'C1-')
-plot(JEDIelecench, 0.01*array(JEDIelecintenpj7s2), 'C1--')
 
-vlines(10e3,uvs_guess2LB,uvs_guess2UB, colors='red')
-hlines(uvs_guess2LB, 10e3 - 1e3, 10e3 + 1e3, colors = 'red')
-hlines(uvs_guess2UB, 10e3 - 1e3, 10e3 + 1e3, colors = 'red')
-legend(['JEDI PJ7 (Mauk et al., 2018)', 'UVS PJ7 (Interpolated)', '0.1 x PJ7 Intensity', '0.01 x PJ7 Intensity'], loc = 'best')
-xscale('log')
-yscale('log')
-xlabel('Energy (keV)')
-ylabel('Intensity $(cm^{2}.s.sr.keV)^{-1}$')
-xlim([32, 12000])
-show()
-savefig('../figs/JEDI_UVSPJ7.png')
-'''
 
 lenJEDI = len(JEDIelecench)
 lenJEDIp = len(JEDIprotench)
@@ -443,7 +321,6 @@ print(JEDIprotencheV)
 edaltbot = 0.
 edalttop = 10000.*conkmcm
 edaltgrd = np.linspace(edaltbot,edalttop,num=2)
-#print('edaltgrd = ',edaltgrd)
 lenalt = len(edaltgrd)
 edepe = np.zeros(lenalt)
 edepearr = np.zeros((lenJEDI,lenalt),dtype=float)
@@ -545,37 +422,7 @@ def intrplee(eintre,LEenrgygrd,LEe):
 # must start subdividing an interpolating until the constraint is met. Then when you
 # worl your way in smaller steps to the next predetermined altitude point, you can
 # simply sum the energy loss points that have been subdivided and interpolated
-'''
-
-
-#Function to proportion energy depostion over an altitude grid
-def edfillgrd(dimensione,presgrdefix,edgrde,JEDIelecenerflx,JEDIestrtenergy,edaltgrd):
-    edepesum = np.zeros(lenalt,dtype=float)
-    esprdfix = []
-    edepesuminv = np.zeros(lenalt)
-    prestop0 = presgrdefix[0]#Pressure at top
-    #print('prestop0 = ', prestop0)
-    alttop0 = prsalt(prestop0,invpres,invaltgrd) #Pressure at top and corresponding altitude
-    icntaccum = 0
-    for i in range(0,dimensione-1):
-        prestop = presgrdefix[i]
-        if (prestop <= 0.):
-            print('prestop = ', prestop)
-            break
-        presbot = presgrdefix[i+1]
-        if (presbot <= 0.):
-            print('presbot = ', presbot)
-            break
-        alttop = prsalt(prestop,invpres,invaltgrd)
-        altbot = prsalt(presbot,invpres,invaltgrd)
-        altrng = alttop-altbot #Height grid where energy is getting deposited
-        esprd = (edgrde[i]*JEDIelecenerflx)/(altrng*JEDIestrtenergy) #Energy deposited at specific height
-        esprdfix.append(esprd)
-
-    print("Esprdfix")
-    print(len(esprdfix))
-    return esprdfix
-    
+''' 
 
 #Run Energy Deposition Case
 rngidx = 100
@@ -656,26 +503,6 @@ def dime(JEDIestrtenergy,pele):
     return ie
 
 
-# Portion of code containing the energy degradation functions
-def pendegrade(JEDIpstrtenergy,dimensionp,edgrdp):
-    #edgrdp = pelp*JEDIpstrtenergy
-    presgrdp[0] = presstrtp
-    XSC = (intrplee(JEDIpstrtenergy,LEenrgygrd,LEp)*0.89) + (intrplee(JEDIpstrtenergy,KEp_He,LEp_He)*0.11)
-    nHp[0] = edgrdp/XSC
-    JEDIped[0] = JEDIpstrtenergy - edgrdp
-    for j in range(dimensionp-1):
-        #edgrdp[j+1] = pelp*JEDIped[0]
-        JEDIped[j+1] = JEDIped[j] - edgrdp
-        XSC = (intrplee(JEDIpstrtenergy,LEenrgygrd,LEp)*0.89) + (intrplee(JEDIpstrtenergy,KEp_He,LEp_He)*0.11)
-        nHtmp = edgrdp/XSC
-        nHp[j+1] = nHp[j]+nHtmp
-        presgrdp[j+1] = nHpres(nHp[j+1])
-        if (JEDIped[j+1] < 0.1):
-            print('I am here p')
-            break
-    return presgrdp, JEDIped
-
-
 # Previously the electron degradation function is used to calculate the hydrogen column depth corresponding to electrons of various energies
 # The code is getting updated to include the contributions from He, partitioning the contributions from H2 and He
 # For now I am considering the contribution to be 89 and 11 percent for H2 and He
@@ -684,31 +511,56 @@ def pendegrade(JEDIpstrtenergy,dimensionp,edgrdp):
 step
 '''
 
-def eendegrade(JEDIestrtenergy,dimensione, edgrde):
-    presgrde[0] = presstrte
-    XSC = (intrplee(JEDIestrtenergy,LEenrgygrd,LEe))
-    JEDIeed[0] = JEDIestrtenergy #- edgrde
-    ix = 0
-    ELoss[0] = pele*JEDIestrtenergy
-    for j in range(dimensione - 1):
-        ELoss[j+1] = ELoss[j]
-        if(logical_and(JEDIeed[j] >= 1e5, ix == 0)):
-            ELoss[j+1] = 1*ELoss[j+1]
-            ix = ix + 1
-        if(logical_or(ELoss[j+1] > 1e3, JEDIeed[j] < 1e4)):
-            ELoss[j+1] = 100
-        JEDIeed[j+1] = JEDIeed[j] - ELoss[j+1]
-        #print("Electron energy | Starting energy")
-        #print(JEDIeed[j+1], JEDIestrtenergy)
-        #print(j+1)
-        if (JEDIeed[j+1] < 0.1):
-            print('I am here e')
+#Function to proportion energy depostion over an altitude grid
+def edfillgrd(Pres, JEDIelecenerflx,JEDIestrtenergy):
+    esprdfix = np.zeros(len(Pres),dtype=float)
+    ParticleEnergy = JEDIestrtenergy
+    ParticleEnergy2 = JEDIestrtenergy
+    PA = 45
+    #prestop0 = presgrdefix[0]#Pressure at top
+    #print('prestop0 = ', prestop0)
+    #alttop0 = prsalt(prestop0,invpres,invaltgrd) #Pressure at top and corresponding altitude
+    icntaccum = 0
+    Pres = flip(Pres)
+    print("Pres")
+    print(len(Pres))
+    i = 0
+    while(i < len(Pres)-1):
+        prestop = Pres[i]
+        if (prestop <= 0.):
+            print('prestop = ', prestop)
             break
-        XSC = (intrplee(JEDIestrtenergy,LEenrgygrd,LEe))
-        nHtmp = edgrde/XSC
-        nHe[j+1] = nHe[j]+nHtmp
-        presgrde[j+1] = nHpres(nHe[j+1])
-    return presgrde, JEDIeed, ELoss
+        presbot = Pres[i+1]
+        if (presbot <= 0.):
+            print('presbot = ', presbot)
+            break
+        while(True):
+          #print(i, len(Pres))
+#Converting the pressure into altitude
+          alttop = prsalt(prestop,invpres,invaltgrd)
+          altbot = prsalt(presbot,invpres,invaltgrd)
+          altrng = alttop-altbot #Height grid where energy is getting deposited
+#Converting pressure into column density
+          nH = (presnH(presbot) - presnH(prestop))/cos(PA*pi/180)
+#Computing energy loss from column density
+          XSC = (intrplee(ParticleEnergy,LEenrgygrd,LEe))
+          edgrde = XSC*nH
+#If energy degradation greater than 10 eV, then insert a grid point using bisection
+          if(edgrde >= 0.01*ParticleEnergy):
+            #print(alttop, altbot)
+            Pres = insert(Pres, i+1, [(prestop + presbot)/2])
+            prestop = Pres[i]
+            presbot = Pres[i+1]
+            esprdfix = insert(esprdfix, i+1, [0])
+            continue
+          else:
+#Update the energy of particle due to collisions
+            ParticleEnergy = ParticleEnergy - edgrde
+            if(ParticleEnergy > 0):
+              esprdfix[i+1] = (edgrde*JEDIelecenerflx)/(altrng*JEDIestrtenergy) #Energy deposited at specific height
+            i = i + 1
+            break
+    return Pres, esprdfix
 
 
 # Portion of code that iterates over JEDI energy spectrum for electrons for now
@@ -718,105 +570,43 @@ Epgrid = zeros(len(altgrd))
 #For electrons
 for i in range(len(JEDIelecencheV)):
     JEDIestrtenergy = JEDIelecencheV[i]
-    edgrde = pele*JEDIestrtenergy
-    dimensione = dime(JEDIestrtenergy,pele)
     JEDIestrtenergy = JEDIelecencheV[i]
-    JEDIeed = np.zeros((dimensione),dtype=float)
-    ELoss = np.zeros((dimensione),dtype=float)
-    nHe = np.zeros(dimensione,dtype=float)
-    presgrde = np.zeros(dimensione,dtype=float)
-    presgrde, JEDIed, ELoss = eendegrade(JEDIestrtenergy,dimensione, edgrde)
-    edepe = edfillgrd(dimensione,presgrde,ELoss,JEDIelecenerflxpj7s2[i],JEDIestrtenergy,edaltgrd)
-    Height = prsalt(presgrde[0:dimensione-1],invpres,invaltgrd)
-    print(len(edepe))
-    print(len(Height))
-    #total energy
-    h_min = min(Height)/1e5
-    h_max = max(Height)/1e5
-    print('Height (km)')
+    presgrid, edepe = edfillgrd(pressure,JEDIelecenerflxpj7s2[i],JEDIestrtenergy)
+    Height = prsalt(presgrid,invpres,invaltgrd)/1e5
+    h_min = min(Height)
+    h_max = max(Height)
     print ('JEDIestrtenergy = ',JEDIestrtenergy)
-    print(dimensione)
     print(h_min, h_max)
     mask = where((Hgrid >= h_min) & (Hgrid <= h_max))
-    #print(mask[0])
     for inx in range(len(mask[0])):
       masked_hgrid = Hgrid[mask[0][inx]]
-      energfunc = interp1d(Height/1e5, edepe, fill_value = [0])
+      energfunc = interp1d(Height, edepe, fill_value = [0])
       Egrid[mask[0][inx]] = Egrid[mask[0][inx]] + energfunc(masked_hgrid)
+
+
+
+
+
+Efunc = interp1d(Hgrid, Egrid, fill_value=(0, 0), bounds_error=False)
 '''
-#For protons      
-for i in range(len(JEDIprotencheV)):
-    JEDIpstrtenergy = JEDIprotencheV[i]
-    edgrdp = pelp*JEDIpstrtenergy
-    print ('JEDIpstrtenergy = ',JEDIpstrtenergy)
-    dimensionp = dime(JEDIpstrtenergy,pelp)
-    JEDIpstrtenergy = JEDIprotencheV[i]
-    JEDIped = np.zeros((dimensionp),dtype=float)
-    nHp = np.zeros(dimensione,dtype=float)
-    presgrdp = np.zeros(dimensione,dtype=float)
-    presgrdp, JEDIed = pendegrade(JEDIpstrtenergy,dimensionp,edgrdp)
-    edepp = edfillgrd(dimensionp,presgrdp,edgrdp,JEDIprotenerflxpj7s2[i],JEDIpstrtenergy,edaltgrd)
-    Height = prsalt(presgrdp[1:dimensionp-1],invpres,invaltgrd)
-    #total energy
-    h_min = min(Height)/1e5
-    h_max = max(Height)/1e5
-    mask = where((Hgrid >= h_min) & (Hgrid <= h_max))
-    print(mask[0])
-    for inx in range(len(mask[0])):
-      masked_hgrid = Hgrid[mask[0][inx]]
-      energfunc = interp1d(Height/1e5, edepp, fill_value = [0])
-      Epgrid[mask[0][inx]] = Epgrid[mask[0][inx]] + energfunc(masked_hgrid)
-
+H4 = m4[:, 0]
+Hgrid = H4
+Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
+-2.856E+01, -2.576E+01, -2.299E+01, -2.020E+01, -1.741E+01, -1.464E+01, -1.278E+01, -1.091E+01,
+-9.065E+00, -7.205E+00, -5.361E+00, -3.500E+00, -1.643E+00, 2.190E-01, 2.076E+00, 3.926E+00,
+ 5.784E+00, 7.645E+00, 9.498E+00, 1.136E+01, 1.322E+01, 1.507E+01, 1.694E+01, 1.879E+01,
+ 2.065E+01, 2.252E+01, 2.437E+01, 2.622E+01, 2.809E+01, 2.995E+01, 3.180E+01, 3.367E+01,
+ 3.552E+01, 3.737E+01, 3.924E+01, 4.110E+01, 4.480E+01, 4.945E+01, 5.502E+01, 6.059E+01,
+ 6.616E+01, 7.173E+01, 7.824E+01, 8.475E+01, 9.125E+01, 9.775E+01, 1.043E+02, 1.108E+02,
+ 1.182E+02, 1.257E+02, 1.331E+02, 1.406E+02, 1.481E+02, 1.555E+02, 1.630E+02, 1.705E+02,
+ 1.780E+02, 1.855E+02, 1.931E+02, 2.007E+02, 2.083E+02, 2.160E+02, 2.236E+02, 2.313E+02,
+ 2.391E+02, 2.469E+02, 2.547E+02, 2.626E+02, 2.706E+02, 2.786E+02, 2.867E+02, 2.948E+02,
+ 3.040E+02, 3.132E+02, 3.225E+02, 3.328E+02, 3.442E+02, 3.566E+02, 3.709E+02, 3.883E+02,
+ 4.086E+02, 4.317E+02, 4.577E+02, 4.875E+02, 5.202E+02, 5.556E+02, 5.930E+02, 6.331E+02,
+ 6.752E+02, 7.192E+02, 7.650E+02, 8.119E+02, 8.596E+02, 9.084E+02, 9.580E+02, 1.008E+03,
+ 1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
 '''
-
-#edgrdp = pelp*JEDIpstrtenergy
-
-#Plot electron energy deposition
-'''
-Totenerg = Egrid + Epgrid
-
-plot(Totenerg, Hgrid, 'k-')
-xscale('log')
-ylim([min(Hgrid), max(Hgrid)])
-xlabel('Energy deposition (eV/cm$^{3}$s)')
-ylabel('Altitude (km)')
-savefig('Energdep_altgr.png')
-show()
-
-if(JEDIestrtenergy == 1E6):
-        plot(np.cumsum(edepe), Height/1e5, 'k-')
-      if(JEDIestrtenergy == 10E6):
-        plot(np.cumsum(edepe), Height/1e5, 'C7-')
-
-
-xscale('log')
-xlabel('Energy deposition (eV/cm^3 s)')
-ylabel('Altitude (km)')
-legend(['1 MeV electrons','10 MeV electrons'], loc = 'best')
-xlim([1e12, 1e20])
-
-for i in range(len(JEDIelecencheV)):
-    JEDIestrtenergy = JEDIelecencheV[i]
-    edgrde = pele*JEDIestrtenergy
-    print ('JEDIestrtenergy = ',JEDIestrtenergy)
-    dimensione = dime(JEDIestrtenergy,pele)
-    JEDIestrtenergy = JEDIelecencheV[i]
-    JEDIeed = np.zeros((dimensione),dtype=float)
-    nHe = np.zeros(dimensione,dtype=float)
-    presgrde = np.zeros(dimensione,dtype=float)
-    presgrde, JEDIed = eendegrade(JEDIestrtenergy,dimensione,edgrde)
-    edepe = edfillgrd(dimensione,presgrde,edgrde,JEDIelecenerflxpj7s2[i],JEDIestrtenergy,edaltgrd)
-    Height = prsalt(presgrde[1:dimensione-1],invpres,invaltgrd)
-    if(JEDIestrtenergy == 1E6):
-      ax2.plot(np.cumsum(edepe), (presgrde[1:dimensione-1])/1e6, 'w-', alpha = 0)
-    if(JEDIestrtenergy == 10E6):
-      ax2.plot(np.cumsum(edepe), (presgrde[1:dimensione-1])/1e6, 'w-', alpha = 0)
-
-ax2.set_ylabel('Pressure (bar)')
-ax2.set_yscale('log')
-ax2.invert_yaxis()
-ax2.set_xlim([1e12, 1e20])
-'''
+Egrid = Efunc(Hgrid)
 ##postprocessing to compute heating rate and ionization
 ##The fractionation efficiencies are taken from Waite et al., (1983)
 w = 39.38 #mean energy loss per ion pair (eV/ip)

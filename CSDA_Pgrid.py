@@ -653,8 +653,8 @@ def edfillgrd(Pres, JEDIelecenerflx,JEDIestrtenergy):
           XSC = (intrplee(ParticleEnergy,LEenrgygrd,LEe))
           edgrde = XSC*nH
 #If energy degradation greater than 10 eV, then insert a grid point using bisection
-          if(logical_and(edgrde > 10, ParticleEnergy > 0)):
-            #print(alttop, altbot)
+          if(logical_and(edgrde >= 0.01*ParticleEnergy, ParticleEnergy > 0.1)):
+            print(alttop, edgrde, ParticleEnergy)
             Pres = insert(Pres, i+1, [(prestop + presbot)/2])
             prestop = Pres[i]
             presbot = Pres[i+1]
