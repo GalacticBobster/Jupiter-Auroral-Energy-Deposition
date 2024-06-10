@@ -21,9 +21,26 @@ from numba import jit, prange
 
 #change to working directory
 #os.chdir('/Users/hwaite/Desktop/JUNO 2016 2023/JEDIjupiteraurora')
-
+'''
+#NOTE that throughout the code an important relation to keep in mind isthe
+# interrelationship of dele and column depth – see Padovani et al. equation 20
+# where we see that LF(E) = - dE/dN(H2), so that dE the differential of the energy
+# dele is directly related to the differential of the column depth, N. So, if you choose
+# dele you are in principle selecting an increment of the column depth.
+'''
 
 #Height grid (KINETICS, Moses and Poppe)
+'''
+# This is the first input file where we need an accurate spline fit function to be able to
+# interpolate this height grid at high resolution when we are forced to decrease the
+# altitude/pressure step size to select a smaller dele so that the dele used in the energy
+# loss calculation does not exceed 1% of the primary electron beam energy. This
+decrease
+# in dele is required to maintain the full detail of the energy loss cross section as shown
+in
+# the Padovani et al. paper.
+'''
+
 Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
 -2.856E+01, -2.576E+01, -2.299E+01, -2.020E+01, -1.741E+01, -1.464E+01, -1.278E+01, -1.091E+01,
 -9.065E+00, -7.205E+00, -5.361E+00, -3.500E+00, -1.643E+00, 2.190E-01, 2.076E+00, 3.926E+00,
@@ -40,6 +57,17 @@ Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01,
  1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
 
 #Pressure grid (KINETICS, Moses and Poppe)
+'''
+# and once again we need a high-resolution relationship between the height gris and
+the
+# pressure grid to properly interpolate the column depth associated with a decrease in
+the
+# column depth of H2 needed to bring the dele into the constrained range 1% of primary
+# beam energy. Keep in mind that when we transform a pressure differential between
+steps
+# into a column density differential we must take into account the temperature changes
+# and the composition changes that occur over the range of the pressure differential.
+'''
 
 Pgrid = [6.708E+03, 5.976E+03, 5.305E+03, 4.689E+03, 4.122E+03, 3.706E+03, 3.414E+03, 3.137E+03,
  2.876E+03, 2.630E+03, 2.402E+03, 2.185E+03, 1.983E+03, 1.795E+03, 1.675E+03, 1.562E+03,
@@ -56,6 +84,11 @@ Pgrid = [6.708E+03, 5.976E+03, 5.305E+03, 4.689E+03, 4.122E+03, 3.706E+03, 3.414
  7.311E-06, 5.285E-06, 3.806E-06, 2.743E-06, 1.978E-06, 1.425E-06, 1.025E-06, 7.390E-07,
  5.313E-07, 3.832E-07, 2.753E-07, 1.981E-07, 1.428E-07, 1.025E-07, 7.373E-08]
  
+'''
+# All of these atmospheric inputs must be interpolated in accurate high resolution to
+make
+# this process work properly
+'''
 
 H = [4.029E+02, 1.670E+03, 5.329E+03, 1.264E+04, 2.331E+04, 3.589E+04, 4.409E+04, 6.956E+04,
  1.052E+05, 1.216E+05, 1.504E+05, 1.745E+05, 2.078E+05, 2.423E+05, 2.714E+05, 3.019E+05,
@@ -150,7 +183,9 @@ T0 = (data[:, 1]) #K
 P0 = (data[:, 2]) #barye
 #H2 = (data[:, 4]) #cc
 
-
+'''
+# I do not understand how this relates to the above atmospheric inputs?
+'''
 
 #new height grid
 #Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
@@ -166,6 +201,11 @@ P0 = (data[:, 2]) #barye
 # 4.086E+02, 4.317E+02, 4.577E+02, 4.875E+02, 5.202E+02, 5.556E+02, 5.930E+02, 6.331E+02,
 # 6.752E+02, 7.192E+02, 7.650E+02, 8.119E+02, 8.596E+02, 9.084E+02, 9.580E+02, 1.008E+03,
 # 1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
+
+'''
+# This is already an interpolation that may be a useful tool for the other interpolation
+# that is noted above? Is one grid about the atmosphere and the other about the energy loss?
+'''
 
 m4 = genfromtxt('../data/PLANETOCOSMICS.txt')
 H4 = m4[:, 0]
@@ -384,7 +424,7 @@ for i in range(lenJEDI):
     JEDIelecenerflxpj7s2[i] = JEDIelecencheV[i] * JEDIelecflxpj7s2[i] #conversion to eV/cm^2 s
     JEDIenerflxtotpj7s2 = JEDIenerflxtotpj7s2 + JEDIelecenerflxpj7s2[i]
 JEDIenerflxtotpj7s2 = JEDIenerflxtotpj7s2 / 6.242e11
-print('Energy flux in mW m^-2 for spectra 2 on PJ7 = ',JEDIenerflxtotpj7s2)
+print('Energy flux for electrons in mW m^-2 for spectra 2 on PJ7 = ',JEDIenerflxtotpj7s2)
 print(JEDIelecencheV)
 
 #For protons
@@ -394,7 +434,7 @@ for i in range(lenJEDIp):
     JEDIprotenerflxpj7s2[i] = JEDIprotencheV[i] * JEDIprotflxpj7s2[i]
     JEDIenerpflxtotpj7s2 = JEDIenerpflxtotpj7s2 + JEDIprotenerflxpj7s2[i]
 JEDIenerpflxtotpj7s2 = JEDIenerpflxtotpj7s2 / 6.242e11
-print('Energy flux in mW m^-2 for spectra 2 on PJ7 = ',JEDIenerpflxtotpj7s2)
+print('Energy flux for protons in mW m^-2 for spectra 2 on PJ7 = ',JEDIenerpflxtotpj7s2)
 print(JEDIprotencheV)
 
 
@@ -499,6 +539,14 @@ def intrplee(eintre,LEenrgygrd,LEe):
     yintre = np.power(10.,lnyintre)
     return yintre
 
+'''
+#This is the place where you need to check the nergy loss between altitude steps
+# and see if the dele exceeds the 1% of primary beam energy and if it does you
+# must start subdividing an interpolating until the constraint is met. Then when you
+# worl your way in smaller steps to the next predetermined altitude point, you can
+# simply sum the energy loss points that have been subdivided and interpolated
+'''
+
 
 #Function to proportion energy depostion over an altitude grid
 def edfillgrd(dimensione,presgrdefix,edgrde,JEDIelecenerflx,JEDIestrtenergy,edaltgrd):
@@ -562,6 +610,10 @@ def presnH(pressurebarye):
 def nHpres(nH):
     pressurebarye = nH*m*g
     return pressurebarye
+
+'''
+# This is useful logic for checking the size of dele in the interpolation scheme
+'''
 
 #determine pressure/column depth step size to use in energy degradation scheme
 
@@ -627,6 +679,11 @@ def pendegrade(JEDIpstrtenergy,dimensionp,edgrdp):
 # Previously the electron degradation function is used to calculate the hydrogen column depth corresponding to electrons of various energies
 # The code is getting updated to include the contributions from He, partitioning the contributions from H2 and He
 # For now I am considering the contribution to be 89 and 11 percent for H2 and He
+'''
+#check this in Julie’s model atmosphere and get ti correct at every altitude/energy loss
+step
+'''
+
 def eendegrade(JEDIestrtenergy,dimensione, edgrde):
     presgrde[0] = presstrte
     XSC = (intrplee(JEDIestrtenergy,LEenrgygrd,LEe))
@@ -814,3 +871,7 @@ for i in range(len(Hgrid)-1, -1, -1):
 # print(str(H2p_rate[i]/array(H2)[i]) + " " + str(Hp_rate[i]/array(H2)[i]) +  " " + str(Ev1[i]/array(H2)[i]) + " " +  str(Ev2[i]/array(H2)[i]) + " " +  str(Ev3[i]/array(H2)[i]))
 #for i in range(len(H0)-1, -1, -1):
 #  print(str(H2p_rate[i]/array(H2)[i]) + "," + str(Hp_rate[i]/array(H2)[i]) +  "," + str(Ev1[i]/array(H2)[i]) + "," +  str(Ev2[i]/array(H2)[i]) + "," +  str(Ev3[i]/array(H2)[i]))
+
+'''
+#EOF?
+'''

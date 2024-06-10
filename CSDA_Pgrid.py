@@ -648,7 +648,7 @@ def edfillgrd(Pres, JEDIelecenerflx,JEDIestrtenergy):
           altbot = prsalt(presbot,invpres,invaltgrd)
           altrng = alttop-altbot #Height grid where energy is getting deposited
 #Converting pressure into column density
-          nH = presnH(presbot - prestop)/cos(PA*pi/180)
+          nH = (presnH(presbot) - presnH(prestop))/cos(PA*pi/180)
 #Computing energy loss from column density
           XSC = (intrplee(ParticleEnergy,LEenrgygrd,LEe))
           edgrde = XSC*nH
