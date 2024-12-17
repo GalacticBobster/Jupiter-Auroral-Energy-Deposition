@@ -156,6 +156,10 @@ Hgrid = AltPC
 H2_PC = H2func(AltPC)
 He_PC = Hefunc(AltPC)
 
+
+jeqrad = 66854.
+conkmcm = 1e5
+
 altgrd = array(Hgrid)*conkmcm
 temperature = array(Tgrid)
 pressure = array(Pgrid)*1e3 #mbar to barye

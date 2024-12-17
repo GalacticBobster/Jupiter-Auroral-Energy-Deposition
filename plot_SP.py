@@ -1,53 +1,46 @@
 from pylab import *
+from scipy import integrate
+from scipy.interpolate import CubicSpline
+from scipy.interpolate import interp1d
 
-#Variables
-#Kinetic   Collision Radiative Total     CSDA      Radiation 
-KE_He = []
-CSP_He = []
-RAD_He = []
-TOT_He = []
-
-KE_CH4 = []
-CSP_CH4 = []
-RAD_CH4 = []
-TOT_CH4 = []
-
-
-#H2 Stopping power from Padovani
-dataH2 = genfromtxt('spNIST/H2eSP_Padovani.txt')
-KE_H2 = dataH2[:,0]*1e-3 #eV -> keV
-TOT_H2 = dataH2[:,1] #eV cm2
+def intrplee(eintre,LEenrgygrd,LEe):
+    lindex = len(LEenrgygrd)
+    lnLEenrgygrd = np.zeros(lindex,dtype=float)
+    lnLEe = np.zeros(lindex,dtype=float)
+    lnLEenrgygrd = np.log10(LEenrgygrd)
+    lnLEe = np.log10(LEe)
+    cslee = CubicSpline(lnLEenrgygrd, lnLEe, bc_type='natural')
+    lneintre = np.log10(eintre)
+    lnyintre = cslee(lneintre)
+    yintre = np.power(10.,lnyintre)
+    return yintre
 
 
+#Truncated cross section value set
+data_H2e = genfromtxt('spNIST/H2eSP_Padovani.txt')
+LEenrgygrd = data_H2e[:, 0] #eV
+LEe = data_H2e[:, 1]*1E-16 #cm^2
 
-#NIST He Stopping power
-with open('spNIST/NISTe_HeSP.txt') as fHe:
-      for jix in range(8):
-        next(fHe)
-      for line in fHe:
-        dataHe = line.split()
-        KE_He.append(float(dataHe[0])*1E3) #MeV -> keV
-        TOT_He.append(float(dataHe[3])*1E6*4/6.022E23) #MeV cm^2/g -> eV cm^2
-      
 
-#NIST CH4 Stopping power
-with open('spNIST/NISTe_CH4SP.txt') as fCH4:
-      for jix in range(8):
-        next(fCH4)
-      for line in fCH4:
-        dataCH4 = line.split()
-        KE_CH4.append(float(dataCH4[0])*1E3) #MeV -> keV
-        TOT_CH4.append(float(dataCH4[3])*1E6*16/6.022E23) #MeV cm^2/g -> eV cm^2
-        
-#plotting stopping power
-fig,axs = subplots(1,1, figsize = (10,10))
-axs.plot(KE_H2, TOT_H2, 'k')
-axs.plot(KE_He, TOT_He, 'k--')
-axs.plot(KE_CH4, TOT_CH4, 'k-.')
-axs.set_xlabel('Electron Energy (keV)')
-axs.set_ylabel('Loss function (eV cm$^{2}$)')
-axs.set_xscale('log')
-axs.set_yscale('log')
-axs.set_xlim([32.07, 10000])
-axs.legend(['H$_{2}$','He','CH$_{4}$'], loc = 'best')
-savefig('SP_all.png')
+
+E = logspace(-1, 10, 100)
+X = intrplee(E,LEenrgygrd,LEe)
+
+func1 = interp1d(log10(LEenrgygrd), log10(LEe), kind='linear',fill_value='extrapolate')
+X_lin = 10**func1(log10(E))
+
+func2 = interp1d(log10(LEenrgygrd), log10(LEe), kind='cubic',fill_value='extrapolate')
+X_cub = 10**func2(log10(E))
+
+
+
+scatter(LEenrgygrd, LEe, c = 'k')
+plot(E, X, 'b-')
+plot(E, X_lin, 'r-')
+plot(E, X_cub, 'C1')
+xscale('log')
+yscale('log')
+legend(['Padovani e-H2 SP', 'Cubic spline', 'log-linear (interp1d)', 'log-cubic (interp1d)'], loc = 'best')
+xlabel('Energy (eV)')
+ylabel('SP (eV cm^2)')
+savefig('figs/SP_Padovani.png')

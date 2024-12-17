@@ -172,14 +172,14 @@ m4 = genfromtxt('../data/PLANETOCOSMICS.txt')
 H4 = linspace(-5.92e1, 1.369e3, 1000)
 Tfunc = CubicSpline(Hgrid, Tgrid, bc_type='not-a-knot')
 Pfunc = CubicSpline(Hgrid, Pgrid, bc_type='not-a-knot')
-Tgrid = Tfunc(H4)
-Pgrid = Pfunc(H4)
+#Tgrid = Tfunc(H4)
+#Pgrid = Pfunc(H4)
 Hgrid = H4
 
 
 altgrd = (array(Hgrid)*conkmcm)
-temperature = (array(Tgrid))
-pressure = (array(Pgrid)*1e3) #mbar to barye
+temperature = (array(Tfunc(H4)))
+pressure = (array(Pfunc(H4))*1e3) #mbar to barye
 
 
 Total = array(H) + array(H2) + array(CH4) + array(He)
@@ -312,13 +312,26 @@ print("Correct = ", uvs_pj7check)
 print("Percent difference = ", 100*(uvs_integral - uvs_pj7check)/uvs_pj7check)
 
 
-plot(new_channels, newint_pj7s2, 'k--')
-plot(JEDIelecench, JEDIelecintenpj7s2, 'k-')
 
-for inx in range(len(new_channels)):
-  JEDIelecench.append(new_channels[inx])
-  JEDIelecintenpj7s1.append(newint_pj7s1[inx])
-  JEDIelecintenpj7s2.append(newint_pj7s2[inx])
+E0 = 65E3 #eV
+Q0 = 1*1e-7/1.6e-19 #erg/cm^2.s -> eV/cm^2.s units
+k = 2.5
+E_m = 2*E0*k/(k - 2)
+
+E = logspace(2,6,100) #Energy band
+f_E = Q0*(4*k*(k-1)*E)/(pi*E_m*((k-2)**2))
+f = f_E*(E_m**(k-1))/(((2*E/(k-2)) + E_m)**(k+1))
+
+
+JEDIelecench = E/1e3
+JEDIelecintenpj7s2 = f*1e3/pi
+#plot(new_channels, newint_pj7s2, 'k--')
+#plot(JEDIelecench, JEDIelecintenpj7s2, 'k-')
+
+#for inx in range(len(new_channels)):
+#  JEDIelecench.append(new_channels[inx])
+#  JEDIelecintenpj7s1.append(newint_pj7s1[inx])
+#  JEDIelecintenpj7s2.append(newint_pj7s2[inx])
 
 print("Electron channel (keV)")
 print(JEDIelecench)
@@ -326,23 +339,34 @@ print("Electron flux (electrons/(cm^2 s ster keV))")
 print(JEDIelecintenpj7s2)
 
 #Plot the spectrum with expected values
+
+func1 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='linear',fill_value='extrapolate')
+JEDIelecench = logspace(-2, 4, 100) 
+JEDIelecintenpj7s2 = 10**func1(log10(JEDIelecench))
+#func2 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='cubic',fill_value='extrapolate')
+#X_cub = 10**func2(log10(E))
+
 '''
-scatter(JEDIelecench, 0.1*JEDIelecintenpj7s2, c ='r', marker = 'x')
-scatter(JEDIelecench, 0.1*JEDIelecintenpj7s2, c ='r', marker = 'x')
-plot(JEDIelecench, 0.1*array(JEDIelecintenpj7s2), 'C1-')
-plot(JEDIelecench, 0.01*array(JEDIelecintenpj7s2), 'C1--')
+print("EE SPEC")
+print(E)
+print(X_lin)
+scatter(JEDIelecench, JEDIelecintenpj7s2, c ='k', marker = 'x')
+plot(E, X_lin, 'm-')
+plot(E, X_cub, 'b-')
+#plot(JEDIelecench, array(JEDIelecintenpj7s2), 'C1-')
+#plot(JEDIelecench, array(JEDIelecintenpj7s2), 'C1--')
 
 vlines(10e3,uvs_guess2LB,uvs_guess2UB, colors='red')
 hlines(uvs_guess2LB, 10e3 - 1e3, 10e3 + 1e3, colors = 'red')
 hlines(uvs_guess2UB, 10e3 - 1e3, 10e3 + 1e3, colors = 'red')
-legend(['JEDI PJ7 (Mauk et al., 2018)', 'UVS PJ7 (Interpolated)', '0.1 x PJ7 Intensity', '0.01 x PJ7 Intensity'], loc = 'best')
+legend(['PJ7 (Mauk et al., 2018 JEDI + UVS)', 'log-linear interpolation', 'log-cubic interpolation'], loc = 'best')
 xscale('log')
 yscale('log')
 xlabel('Energy (keV)')
 ylabel('Intensity $(cm^{2}.s.sr.keV)^{-1}$')
 xlim([32, 12000])
 show()
-savefig('../figs/JEDI_UVSPJ7.png')
+#savefig('figs/JEDI_UVSPJ7.png')
 '''
 
 lenJEDI = len(JEDIelecench)
@@ -654,7 +678,6 @@ def edfillgrd(Pres, JEDIelecenerflx,JEDIestrtenergy):
           edgrde = XSC*nH
 #If energy degradation greater than 10 eV, then insert a grid point using bisection
           if(logical_and(edgrde >= 0.01*ParticleEnergy, ParticleEnergy > 0.1)):
-            print(alttop, edgrde, ParticleEnergy)
             Pres = insert(Pres, i+1, [(prestop + presbot)/2])
             prestop = Pres[i]
             presbot = Pres[i+1]
@@ -664,7 +687,7 @@ def edfillgrd(Pres, JEDIelecenerflx,JEDIestrtenergy):
 #Update the energy of particle due to collisions
             ParticleEnergy = ParticleEnergy - edgrde
             if(ParticleEnergy > 0):
-              esprdfix[i+1] = (edgrde*JEDIelecenerflx)/(altrng*JEDIestrtenergy) #Energy deposited at specific height
+              esprdfix[i] = (edgrde*JEDIelecenerflx)/(altrng*JEDIestrtenergy) #Energy deposited at specific height
             i = i + 1
             break
     return Pres, esprdfix
@@ -675,8 +698,10 @@ Epgrid = zeros(len(altgrd))
 #For electrons
 for i in range(len(JEDIelecencheV)):
     JEDIestrtenergy = JEDIelecencheV[i]
-    JEDIestrtenergy = JEDIelecencheV[i]
-    presgrid, edepe = edfillgrd(pressure,JEDIelecenerflxpj7s2[i],JEDIestrtenergy)
+    #JEDIestrtenergy = 10E3#JEDIelecencheV[i]
+    JEDIstartintensity = JEDIelecenerflxpj7s2[i]
+    #JEDIstartintensity = 6.25e+12 #1E5*pi*10*JEDIestrtenergy #JEDIelecenerflxpj7s2[i]
+    presgrid, edepe = edfillgrd(pressure,JEDIstartintensity,JEDIestrtenergy)
     Height = prsalt(presgrid,invpres,invaltgrd)/1e5
     h_min = min(Height)
     h_max = max(Height)
@@ -692,8 +717,8 @@ for i in range(len(JEDIelecencheV)):
 
 
 
-Efunc = interp1d(Hgrid, Egrid, fill_value=(0, 0), bounds_error=False)
-'''
+Efunc = interp1d(pressure*1e-3, Egrid, fill_value=(0, 0), bounds_error=False)
+
 H4 = m4[:, 0]
 Hgrid = H4
 Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
@@ -710,8 +735,8 @@ Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01,
  4.086E+02, 4.317E+02, 4.577E+02, 4.875E+02, 5.202E+02, 5.556E+02, 5.930E+02, 6.331E+02,
  6.752E+02, 7.192E+02, 7.650E+02, 8.119E+02, 8.596E+02, 9.084E+02, 9.580E+02, 1.008E+03,
  1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
-'''
-Egrid = Efunc(Hgrid)
+
+Egrid = Efunc(Pgrid)
 
 ##postprocessing to compute heating rate and ionization
 ##The fractionation efficiencies are taken from Waite et al., (1983)
@@ -732,13 +757,16 @@ Hp_rate = Egrid*hp_heat/(w*100)
 Heat_rate = Egrid*(n_heat)/100
 e_rate = Egrid*e_heat/100
 #Electron impact vibrationally excited states
+
+
+
 v1 = 11.37 - 10.0
 v2 = 12.4 - 10.0
 v3 = 14.12 - 10.0
 
-Ev1 = 1*Egrid*vd_heat/(v1*100)
-Ev2 = 0.1*Egrid*vd_heat/(v2*100)
-Ev3 = 0.007*Egrid*vd_heat/(v3*100)
+Ev1 = 1*Egrid*vd_heat/(w*100)
+Ev2 = 0.1*Egrid*vd_heat/(w*100)
+Ev3 = 0.007*Egrid*vd_heat/(w*100)
 
 
 dat2 = genfromtxt('Egert_heating_rate.txt')
@@ -767,5 +795,5 @@ for i in range(len(Hgrid)-1, -1, -1):
 #     d5 = 0
 
 # print(str(d1) + " " + str(d2) +  " " + str(d3) + " " +  str(d4) + " " +  str(d5))
-#for i in range(len(H0)-1, -1, -1):
+#for i in range(len(Pgrid)-1, -1, -1):
 #  print(str(H2p_rate[i]/array(H2)[i]) + "," + str(Hp_rate[i]/array(H2)[i]) +  "," + str(Ev1[i]/array(H2)[i]) + "," +  str(Ev2[i]/array(H2)[i]) + "," +  str(Ev3[i]/array(H2)[i]))

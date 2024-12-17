@@ -1,0 +1,15 @@
+#PJ7 event
+color ratio: 20.1994364781133
+Total emission (kR) :13.553218419966342
+
+#PJ7 scaled by 0.1
+color ratio: 20.12003382813482
+Total emission (kR) :1.3643694518497496
+
+#PJ7 scaled by 0.01
+color ratio: 20.120033828134826
+Total emission (kR) :0.13643694518497498
+
+#JEDI only
+color ratio: 17.66433023751752
+Total emission (kR) :11.892533893824705
