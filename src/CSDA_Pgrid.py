@@ -323,8 +323,8 @@ f_E = Q0*(4*k*(k-1)*E)/(pi*E_m*((k-2)**2))
 f = f_E*(E_m**(k-1))/(((2*E/(k-2)) + E_m)**(k+1))
 
 
-JEDIelecench = E/1e3
-JEDIelecintenpj7s2 = f*1e3/pi
+#JEDIelecench = E/1e3
+#JEDIelecintenpj7s2 = f*1e3/pi
 #plot(new_channels, newint_pj7s2, 'k--')
 #plot(JEDIelecench, JEDIelecintenpj7s2, 'k-')
 
@@ -341,7 +341,7 @@ print(JEDIelecintenpj7s2)
 #Plot the spectrum with expected values
 
 func1 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='linear',fill_value='extrapolate')
-JEDIelecench = logspace(-2, 4, 100) 
+JEDIelecench = logspace(log10(32), 3, 500) 
 JEDIelecintenpj7s2 = 10**func1(log10(JEDIelecench))
 #func2 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='cubic',fill_value='extrapolate')
 #X_cub = 10**func2(log10(E))
@@ -696,11 +696,11 @@ Egrid = zeros(len(altgrd))
 Epgrid = zeros(len(altgrd))
 
 #For electrons
-for i in range(len(JEDIelecencheV)):
-    JEDIestrtenergy = JEDIelecencheV[i]
-    #JEDIestrtenergy = 10E3#JEDIelecencheV[i]
-    JEDIstartintensity = JEDIelecenerflxpj7s2[i]
-    #JEDIstartintensity = 6.25e+12 #1E5*pi*10*JEDIestrtenergy #JEDIelecenerflxpj7s2[i]
+for i in range(1):
+    #JEDIestrtenergy = JEDIelecencheV[i]
+    JEDIestrtenergy = 1000E3#JEDIelecencheV[i]
+    #JEDIstartintensity = JEDIelecenerflxpj7s2[i]
+    JEDIstartintensity = 6.25e+12 #1E5*pi*10*JEDIestrtenergy #JEDIelecenerflxpj7s2[i]
     presgrid, edepe = edfillgrd(pressure,JEDIstartintensity,JEDIestrtenergy)
     Height = prsalt(presgrid,invpres,invaltgrd)/1e5
     h_min = min(Height)
@@ -776,8 +776,8 @@ alt2 = dat2[:,1]
 
 
 #for i in range(len(Hgrid)):
-for i in range(len(Hgrid)-1, -1, -1):
- print(str(Hgrid[i]) + "," + str(Heat_rate[i]) + "," + str(e_rate[i]) )
+#for i in range(len(Hgrid)-1, -1, -1):
+# print(str(Hgrid[i]) + "," + str(Heat_rate[i]) + "," + str(e_rate[i]) )
 # d1 = H2p_rate[i]/array(H2)[i]
 # d2 = Hp_rate[i]/array(H2)[i]
 # d3 = Ev1[i]/array(H2)[i]
@@ -795,5 +795,8 @@ for i in range(len(Hgrid)-1, -1, -1):
 #     d5 = 0
 
 # print(str(d1) + " " + str(d2) +  " " + str(d3) + " " +  str(d4) + " " +  str(d5))
-#for i in range(len(Pgrid)-1, -1, -1):
-#  print(str(H2p_rate[i]/array(H2)[i]) + "," + str(Hp_rate[i]/array(H2)[i]) +  "," + str(Ev1[i]/array(H2)[i]) + "," +  str(Ev2[i]/array(H2)[i]) + "," +  str(Ev3[i]/array(H2)[i]))
+with open(" Mono1000keV.txt", "w") as f:
+  for i in range(len(Pgrid)-1, -1, -1):
+    f.write(str(H2p_rate[i]/array(H2)[i]) + "," + str(Hp_rate[i]/array(H2)[i]) +  "," + str(Ev1[i]/array(H2)[i]) + "," +  str(Ev2[i]/array(H2)[i]) + "," +  str(Ev3[i]/array(H2)[i]) + "\n")
+  #print(str(H2p_rate[i]/array(H2)[i]) + "," + str(Hp_rate[i]/array(H2)[i]) +  "," + str(Ev1[i]/array(H2)[i]) + "," +  str(Ev2[i]/array(H2)[i]) + "," +  str(Ev3[i]/array(H2)[i]))
+f.close()
