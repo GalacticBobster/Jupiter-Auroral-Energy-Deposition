@@ -293,6 +293,16 @@ print("Correct = ", uvs_pj7check)
 print("Percent difference = ", 100*(uvs_integral - uvs_pj7check)/uvs_pj7check)
 
 
+
+E0 = 65E3 #eV
+Q0 = 1*1e-7/1.6e-19 #erg/cm^2.s -> eV/cm^2.s units
+k = 2.5
+E_m = 2*E0*k/(k - 2)
+
+E = logspace(2,6,100) #Energy band
+f_E = Q0*(4*k*(k-1)*E)/(pi*E_m*((k-2)**2))
+f = f_E*(E_m**(k-1))/(((2*E/(k-2)) + E_m)**(k+1))
+
 print("Electron channel (keV)")
 print(JEDIelecench)
 print("Electron flux (electrons/(cm^2 s ster keV))")
@@ -301,9 +311,10 @@ print(JEDIelecintenpj7s2)
 #Plot the spectrum with expected values
 
 func1 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='linear',fill_value='extrapolate')
-JEDIelecench = logspace(log10(32), 4, 500) 
+JEDIelecench = logspace(log10(32), 3, 500) 
 JEDIelecintenpj7s2 = 10**func1(log10(JEDIelecench))
-
+#func2 = interp1d(log10(JEDIelecench), log10(JEDIelecintenpj7s2), kind='cubic',fill_value='extrapolate')
+#X_cub = 10**func2(log10(E))
 
 '''
 print("EE SPEC")
@@ -658,9 +669,11 @@ Epgrid = zeros(len(altgrd))
 
 
 #For electrons
-for i in range(len(JEDIelecencheV)):
-    JEDIestrtenergy = JEDIelecencheV[i]
-    JEDIstartintensity = JEDIelecenerflxpj7s2[i]
+for i in range(1):
+    #JEDIestrtenergy = JEDIelecencheV[i]
+    JEDIestrtenergy = 1000E3#JEDIelecencheV[i]
+    #JEDIstartintensity = JEDIelecenerflxpj7s2[i]
+    JEDIstartintensity = 6.25e+12 #1E5*pi*10*JEDIestrtenergy #JEDIelecenerflxpj7s2[i]
     presgrid, edepe = edfillgrd(pressure,JEDIstartintensity,JEDIestrtenergy)
     Height = prsalt(presgrid,invpres,invaltgrd)/1e5
     h_min = min(Height)
@@ -676,13 +689,11 @@ for i in range(len(JEDIelecencheV)):
 
 
 
-#Interpolation function the total energy deposition on different pressure grid
+
 Efunc = interp1d(pressure*1e-3, Egrid, fill_value=(0, 0), bounds_error=False)
 
 H4 = m4[:, 0]
 Hgrid = H4
-
-#Moses and Poppe grid
 Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01, -3.413E+01, -3.135E+01,
 -2.856E+01, -2.576E+01, -2.299E+01, -2.020E+01, -1.741E+01, -1.464E+01, -1.278E+01, -1.091E+01,
 -9.065E+00, -7.205E+00, -5.361E+00, -3.500E+00, -1.643E+00, 2.190E-01, 2.076E+00, 3.926E+00,
@@ -698,7 +709,6 @@ Hgrid = [-5.920E+01, -5.454E+01, -4.991E+01, -4.528E+01, -4.062E+01, -3.691E+01,
  6.752E+02, 7.192E+02, 7.650E+02, 8.119E+02, 8.596E+02, 9.084E+02, 9.580E+02, 1.008E+03,
  1.058E+03, 1.109E+03, 1.161E+03, 1.212E+03, 1.264E+03, 1.316E+03, 1.369E+03]
 
-#Interpolating it to the Moses and Poppe grid
 Egrid = Efunc(Pgrid)
 
 ##postprocessing to compute heating rate and ionization
